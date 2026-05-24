@@ -19,7 +19,7 @@ export default function PresetsPage() {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [durationMin, setDurationMin] = useState<number | null>(null);
   const [machineName, setMachineName] = useState("");
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([{ name: "", target: "", duration: "" }]);
   const [saving, setSaving] = useState(false);
   const [fetchingMeta, setFetchingMeta] = useState(false);
   const [youtubeMeta, setYoutubeMeta] = useState<{
@@ -93,7 +93,7 @@ export default function PresetsPage() {
       setYoutubeMeta(null);
       setDurationMin(null);
       setMachineName("");
-      setExercises([]);
+      setExercises([{ ...EMPTY_EXERCISE }]);
       await load();
     }
     setSaving(false);
@@ -186,6 +186,7 @@ export default function PresetsPage() {
                   setYoutubeMeta(null);
                   setYoutubeUrl("");
                   setMachineName("");
+                  setExercises(cat === "youtube" ? [] : [{ name: "", target: "", duration: "" }]);
                 }}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${
                   category === cat
@@ -279,51 +280,59 @@ export default function PresetsPage() {
             />
           </div>
 
-          {/* Exercises - dynamic add/remove */}
+          {/* Exercises - different layout for youtube vs chocozap/home */}
           <div>
-            <label className="block text-xs text-muted mb-2">種目一覧（任意）</label>
+            <label className="block text-xs text-muted mb-2">
+              {category === "youtube" ? "種目一覧（任意）" : "種目一覧"}
+            </label>
             {exercises.map((ex, idx) => (
-              <div key={idx} className="flex gap-1.5 mb-2 items-center">
-                <span className="text-xs text-muted w-5 text-right shrink-0">{idx + 1}</span>
-                <input
-                  type="text"
-                  value={ex.name}
-                  onChange={(e) => {
-                    const next = [...exercises];
-                    next[idx] = { ...ex, name: e.target.value };
-                    setExercises(next);
-                  }}
-                  placeholder="種目名（例: チェストプレス）"
-                  className="flex-[3] px-2 py-1.5 card-gradient rounded-lg text-xs"
-                />
-                <input
-                  type="text"
-                  value={ex.target}
-                  onChange={(e) => {
-                    const next = [...exercises];
-                    next[idx] = { ...ex, target: e.target.value };
-                    setExercises(next);
-                  }}
-                  placeholder="部位（例: 胸）"
-                  className="flex-[1.5] px-2 py-1.5 card-gradient rounded-lg text-xs"
-                />
-                <input
-                  type="text"
-                  value={ex.duration}
-                  onChange={(e) => {
-                    const next = [...exercises];
-                    next[idx] = { ...ex, duration: e.target.value };
-                    setExercises(next);
-                  }}
-                  placeholder="回数/時間（例: 10回）"
-                  className="flex-[1.5] px-2 py-1.5 card-gradient rounded-lg text-xs"
-                />
-                <button
-                  onClick={() => setExercises(exercises.filter((_, i) => i !== idx))}
-                  className="text-muted hover:text-red-400 px-1 shrink-0"
-                >
-                  ×
-                </button>
+              <div key={idx} className="card-gradient rounded-xl p-2.5 mb-2">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <span className="text-xs text-muted w-5 text-center shrink-0">{idx + 1}</span>
+                  <input
+                    type="text"
+                    value={ex.name}
+                    onChange={(e) => {
+                      const next = [...exercises];
+                      next[idx] = { ...ex, name: e.target.value };
+                      setExercises(next);
+                    }}
+                    placeholder={category === "chocozap" ? "マシン名（例: チェストプレス）" : "種目名（例: 懸垂）"}
+                    className="flex-1 px-2 py-1.5 bg-background rounded-lg text-xs"
+                  />
+                  {exercises.length > 1 && (
+                    <button
+                      onClick={() => setExercises(exercises.filter((_, i) => i !== idx))}
+                      className="text-muted hover:text-red-400 px-1 shrink-0 text-xs"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 pl-6">
+                  <input
+                    type="text"
+                    value={ex.target}
+                    onChange={(e) => {
+                      const next = [...exercises];
+                      next[idx] = { ...ex, target: e.target.value };
+                      setExercises(next);
+                    }}
+                    placeholder="部位（例: 胸）"
+                    className="flex-1 px-2 py-1.5 bg-background rounded-lg text-xs"
+                  />
+                  <input
+                    type="text"
+                    value={ex.duration}
+                    onChange={(e) => {
+                      const next = [...exercises];
+                      next[idx] = { ...ex, duration: e.target.value };
+                      setExercises(next);
+                    }}
+                    placeholder={category === "chocozap" ? "例: 40kg×10回×3セット" : "例: 10回×3セット"}
+                    className="flex-1 px-2 py-1.5 bg-background rounded-lg text-xs"
+                  />
+                </div>
               </div>
             ))}
             <button
@@ -343,7 +352,7 @@ export default function PresetsPage() {
                 setYoutubeUrl("");
                 setYoutubeMeta(null);
                 setMachineName("");
-                setExercises([]);
+                setExercises([{ ...EMPTY_EXERCISE }]);
               }}
               className="flex-1 py-2 border border-card-border rounded-lg text-sm"
             >
