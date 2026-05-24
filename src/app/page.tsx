@@ -180,6 +180,14 @@ export default function Dashboard() {
               />
             </div>
           </div>
+
+          {/* PFC deficit advice */}
+          <PfcAdvice
+            proteinDeficit={profile.target_protein - summary.total_protein}
+            fatDeficit={profile.target_fat - summary.total_fat}
+            carbsDeficit={profile.target_carbs - summary.total_carbs}
+            calorieDeficit={adjustedTarget - summary.total_calories}
+          />
         </div>
 
         {/* Right column */}
@@ -292,6 +300,97 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── PFC Deficit Advice Component ────────────────────────────────
+interface PfcAdviceProps {
+  proteinDeficit: number;
+  fatDeficit: number;
+  carbsDeficit: number;
+  calorieDeficit: number;
+}
+
+function PfcAdvice({ proteinDeficit, fatDeficit, carbsDeficit, calorieDeficit }: PfcAdviceProps) {
+  // Build suggestion lists per nutrient
+  type Suggestion = { text: string; amount: string };
+  const suggestions: { label: string; deficit: number; unit: string; items: Suggestion[] }[] = [];
+
+  if (proteinDeficit > 0) {
+    const items: Suggestion[] = [];
+    if (proteinDeficit > 20) {
+      items.push({ text: "プロテイン1杯", amount: "+24g" });
+      items.push({ text: "サラダチキン1個", amount: "+25g" });
+    }
+    if (proteinDeficit <= 20 || items.length < 3) {
+      items.push({ text: "卵1個", amount: "+7g" });
+      items.push({ text: "納豆1パック", amount: "+8g" });
+    }
+    suggestions.push({ label: "タンパク質", deficit: Math.round(proteinDeficit), unit: "g", items });
+  }
+
+  if (fatDeficit > 0) {
+    suggestions.push({
+      label: "脂質",
+      deficit: Math.round(fatDeficit),
+      unit: "g",
+      items: [
+        { text: "ナッツ30g", amount: "+16g" },
+        { text: "アボカド半分", amount: "+10g" },
+      ],
+    });
+  }
+
+  if (carbsDeficit > 0) {
+    const items: Suggestion[] = [];
+    if (carbsDeficit > 30) items.push({ text: "おにぎり1個", amount: "+40g" });
+    if (carbsDeficit > 20) items.push({ text: "バナナ1本", amount: "+25g" });
+    items.push({ text: "食パン1枚", amount: "+25g" });
+    suggestions.push({ label: "炭水化物", deficit: Math.round(carbsDeficit), unit: "g", items });
+  }
+
+  if (calorieDeficit > 150) {
+    suggestions.push({
+      label: "カロリー",
+      deficit: Math.round(calorieDeficit),
+      unit: "kcal",
+      items: [
+        { text: "おにぎり1個", amount: "+180kcal" },
+        { text: "プロテインバー", amount: "+200kcal" },
+      ],
+    });
+  }
+
+  // All targets met
+  if (suggestions.length === 0) {
+    return (
+      <div className="card-gradient rounded-2xl p-4 text-center">
+        <p className="text-sm font-medium">🎉 今日のPFCは達成済み！</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card-gradient rounded-2xl p-4 space-y-3">
+      <p className="text-sm font-medium">💡 あと少し！</p>
+      {suggestions.map((s) => (
+        <div key={s.label} className="space-y-1">
+          <p className="text-xs text-muted">
+            {s.label}があと<span className="text-foreground font-medium">{s.deficit}{s.unit}</span>足りないよ
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {s.items.map((item) => (
+              <span
+                key={item.text}
+                className="text-[11px] px-2 py-0.5 rounded-lg bg-accent/10 text-accent"
+              >
+                {item.text}({item.amount})
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

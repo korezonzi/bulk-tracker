@@ -9,10 +9,12 @@ interface PfcRingProps {
 }
 
 export function PfcRing({ current, target, label, color, unit = "g" }: PfcRingProps) {
-  const percentage = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+  const rawPercentage = target > 0 ? (current / target) * 100 : 0;
+  const ringPercentage = Math.min(rawPercentage, 100); // Ring capped at 100%
+  const displayPercentage = Math.round(rawPercentage); // Display shows actual %
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const strokeDashoffset = circumference - (ringPercentage / 100) * circumference;
   const diff = current - target;
   const isOver = diff > 0;
 
@@ -46,7 +48,7 @@ export function PfcRing({ current, target, label, color, unit = "g" }: PfcRingPr
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-sm md:text-base font-bold font-num">{Math.round(percentage)}%</span>
+          <span className={`text-sm md:text-base font-bold font-num ${isOver ? "text-yellow-400" : ""}`}>{displayPercentage}%</span>
         </div>
       </div>
       <span className="text-xs font-medium">{label}</span>

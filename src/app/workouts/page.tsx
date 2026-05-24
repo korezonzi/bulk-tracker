@@ -8,7 +8,7 @@ import {
   detectMuscleGroups,
   compareOverload,
 } from "@/lib/calc";
-import type { WorkoutPreset, WorkoutLog, WorkoutSet } from "@/lib/types";
+import type { WorkoutPreset, WorkoutLog, WorkoutSet, WorkoutCategory } from "@/lib/types";
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_EMOJI } from "@/lib/types";
 import Link from "next/link";
 
@@ -300,7 +300,7 @@ export default function WorkoutsPage() {
         )}
       </div>
 
-      {/* Presets - responsive grid on desktop */}
+      {/* Presets - grouped by category */}
       {presets.length === 0 ? (
         <div className="text-center py-16 text-muted">
           <p className="text-4xl mb-3">💪</p>
@@ -310,217 +310,236 @@ export default function WorkoutsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {presets.map((preset) => {
-            const isLogged = loggedPresetIds.has(preset.id);
-            const thisLogs = dayLogs.filter((l) => l.preset_id === preset.id);
-            const isSetBased = preset.category === "chocozap" || preset.category === "home";
-            const isHome = preset.category === "home";
-            const isSetInputOpen = openSetInputId === preset.id;
-
+        <div className="space-y-6">
+          {(
+            [
+              { key: "youtube" as WorkoutCategory, label: "YouTube", emoji: "🎬" },
+              { key: "chocozap" as WorkoutCategory, label: "chocoZAP", emoji: "🏋️" },
+              { key: "home" as WorkoutCategory, label: "自宅", emoji: "🏠" },
+            ] as const
+          ).map((cat) => {
+            const catPresets = presets.filter((p) => p.category === cat.key);
+            if (catPresets.length === 0) return null;
             return (
-              <div
-                key={preset.id}
-                className="card-gradient rounded-2xl overflow-hidden"
-              >
-                <div className="flex items-center gap-3 p-4">
-                  {/* Thumbnail for YouTube */}
-                  {preset.thumbnail_url && (
-                    <button
-                      onClick={() => setExpandedId(expandedId === preset.id ? null : preset.id)}
-                      className="shrink-0"
-                    >
-                      <img
-                        src={preset.thumbnail_url}
-                        alt=""
-                        className="w-16 h-10 object-cover rounded-lg"
-                      />
-                    </button>
-                  )}
+              <div key={cat.key}>
+                <p className="text-sm font-medium text-muted mb-2">
+                  {cat.emoji} {cat.label}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                  {catPresets.map((preset) => {
+                    const isLogged = loggedPresetIds.has(preset.id);
+                    const thisLogs = dayLogs.filter((l) => l.preset_id === preset.id);
+                    const isSetBased = preset.category === "chocozap" || preset.category === "home";
+                    const isHome = preset.category === "home";
+                    const isSetInputOpen = openSetInputId === preset.id;
 
-                  <button
-                    onClick={() => setExpandedId(expandedId === preset.id ? null : preset.id)}
-                    className="flex-1 min-w-0 text-left"
-                  >
-                    <p className="text-sm font-medium truncate">{preset.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-md ${CATEGORY_COLORS[preset.category]}`}
+                    return (
+                      <div
+                        key={preset.id}
+                        className="card-gradient rounded-2xl overflow-hidden"
                       >
-                        {CATEGORY_LABELS[preset.category]}
-                      </span>
-                      {preset.duration_min && (
-                        <span className="text-[10px] text-muted">
-                          {preset.duration_min}分
-                        </span>
-                      )}
-                      {preset.exercises && preset.exercises.length > 0 && (
-                        <span className="text-[10px] text-muted">
-                          {preset.exercises.length}種目
-                        </span>
-                      )}
-                      {/* Muscle group badges */}
-                      {detectMuscleGroups(preset.exercises ?? null, preset.name).map((mg) => (
-                        <span
-                          key={mg}
-                          className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent"
-                        >
-                          {MUSCLE_GROUP_EMOJI[mg]}{MUSCLE_GROUP_LABELS[mg]}
-                        </span>
-                      ))}
-                    </div>
-                  </button>
-
-                  {/* Check button */}
-                  <button
-                    onClick={() => {
-                      if (isSetBased) {
-                        toggleSetInput(preset);
-                      } else {
-                        handleLog(preset);
-                      }
-                    }}
-                    disabled={logging === preset.id}
-                    className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                      isLogged
-                        ? "bg-green-500/15 text-green-400"
-                        : isSetInputOpen
-                          ? "bg-yellow-500/15 text-yellow-400"
-                          : "bg-accent/15 text-accent hover:bg-accent/25"
-                    }`}
-                  >
-                    {logging === preset.id ? (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-
-                {/* Set input UI for chocoZAP / home */}
-                {isSetInputOpen && isSetBased && (
-                  <div className="border-t border-card-border px-4 py-3 space-y-2">
-                    {(setInputs[preset.id] ?? []).map((set, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <span className="text-xs text-muted w-12 shrink-0">セット{i + 1}</span>
-                        {!isHome && (
-                          <>
-                            <input
-                              type="number"
-                              inputMode="decimal"
-                              value={set.weight_kg ?? ""}
-                              onChange={(e) => updateSetField(preset.id, i, "weight_kg", Number(e.target.value))}
-                              className="w-16 px-2 py-1.5 text-sm bg-card-hover rounded-lg text-center border border-card-border focus:border-accent outline-none"
-                              placeholder="kg"
-                            />
-                            <span className="text-xs text-muted">kg</span>
-                            <span className="text-xs text-muted">×</span>
-                          </>
-                        )}
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          value={set.reps || ""}
-                          onChange={(e) => updateSetField(preset.id, i, "reps", Number(e.target.value))}
-                          className="w-16 px-2 py-1.5 text-sm bg-card-hover rounded-lg text-center border border-card-border focus:border-accent outline-none"
-                          placeholder="回"
-                        />
-                        <span className="text-xs text-muted">回</span>
-                        {(setInputs[preset.id] ?? []).length > 1 && (
-                          <button
-                            onClick={() => removeSetRow(preset.id, i)}
-                            className="text-xs text-red-400 hover:text-red-300 ml-auto"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        onClick={() => addSetRow(preset.id, isHome)}
-                        className="text-xs text-accent hover:text-accent/80 transition-colors"
-                      >
-                        + セット追加
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => handleLogWithSets(preset)}
-                      disabled={logging === preset.id}
-                      className="w-full py-2 text-sm font-medium bg-accent/20 text-accent hover:bg-accent/30 rounded-xl transition-colors mt-1"
-                    >
-                      {logging === preset.id ? "記録中..." : "記録する"}
-                    </button>
-                  </div>
-                )}
-
-                {/* Exercise details (expandable) */}
-                {expandedId === preset.id && preset.exercises && preset.exercises.length > 0 && (
-                  <div className="border-t border-card-border px-4 py-3 space-y-1.5">
-                    {preset.exercises.map((ex, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted w-4 text-right">{i + 1}</span>
-                          <span>{ex.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted">
-                          <span>{ex.target}</span>
-                          <span className="text-[10px]">{ex.duration}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Show log entries for this preset */}
-                {thisLogs.length > 0 && (
-                  <div className="border-t border-card-border px-4 py-2.5">
-                    {thisLogs.map((log, logIdx) => (
-                      <div key={log.id} className="flex items-center justify-between py-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted">
-                            {thisLogs.length > 1 ? `${logIdx + 1}回目` : "1回 実施"}
-                          </span>
-                          {log.estimated_calories > 0 && (
-                            <span className="text-[10px] text-orange-400">
-                              ~{log.estimated_calories}kcal
-                            </span>
-                          )}
-                          {log.sets && (log.sets as WorkoutSet[]).length > 0 && (
-                            <span className="text-[10px] text-muted">
-                              {(log.sets as WorkoutSet[]).length}セット
-                            </span>
-                          )}
-                          {/* Progressive overload indicator */}
-                          {overloadResults[log.id] && (
-                            <span
-                              className={`text-[10px] ${
-                                overloadResults[log.id].status === "up"
-                                  ? "text-green-400"
-                                  : overloadResults[log.id].status === "down"
-                                    ? "text-yellow-400"
-                                    : "text-muted"
-                              }`}
+                        <div className="flex items-center gap-3 p-4">
+                          {/* Thumbnail for YouTube */}
+                          {preset.thumbnail_url && (
+                            <button
+                              onClick={() => setExpandedId(expandedId === preset.id ? null : preset.id)}
+                              className="shrink-0"
                             >
-                              {overloadResults[log.id].status === "up" && "⬆️ "}
-                              {overloadResults[log.id].status === "same" && "→ "}
-                              {overloadResults[log.id].status === "down" && "⬇️ "}
-                              {overloadResults[log.id].detail}
-                            </span>
+                              <img
+                                src={preset.thumbnail_url}
+                                alt=""
+                                className="w-16 h-10 object-cover rounded-lg"
+                              />
+                            </button>
                           )}
+
+                          <button
+                            onClick={() => setExpandedId(expandedId === preset.id ? null : preset.id)}
+                            className="flex-1 min-w-0 text-left"
+                          >
+                            <p className="text-sm font-medium truncate">{preset.name}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded-md ${CATEGORY_COLORS[preset.category]}`}
+                              >
+                                {CATEGORY_LABELS[preset.category]}
+                              </span>
+                              {preset.duration_min && (
+                                <span className="text-[10px] text-muted">
+                                  {preset.duration_min}分
+                                </span>
+                              )}
+                              {preset.exercises && preset.exercises.length > 0 && (
+                                <span className="text-[10px] text-muted">
+                                  {preset.exercises.length}種目
+                                </span>
+                              )}
+                              {/* Muscle group badges */}
+                              {detectMuscleGroups(preset.exercises ?? null, preset.name).map((mg) => (
+                                <span
+                                  key={mg}
+                                  className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent"
+                                >
+                                  {MUSCLE_GROUP_EMOJI[mg]}{MUSCLE_GROUP_LABELS[mg]}
+                                </span>
+                              ))}
+                            </div>
+                          </button>
+
+                          {/* Check button */}
+                          <button
+                            onClick={() => {
+                              if (isSetBased) {
+                                toggleSetInput(preset);
+                              } else {
+                                handleLog(preset);
+                              }
+                            }}
+                            disabled={logging === preset.id}
+                            className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
+                              isLogged
+                                ? "bg-green-500/15 text-green-400"
+                                : isSetInputOpen
+                                  ? "bg-yellow-500/15 text-yellow-400"
+                                  : "bg-accent/15 text-accent hover:bg-accent/25"
+                            }`}
+                          >
+                            {logging === preset.id ? (
+                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleRemoveLog(log.id)}
-                          className="text-xs text-red-400 hover:text-red-300 transition-colors"
-                        >
-                          取消
-                        </button>
+
+                        {/* Set input UI for chocoZAP / home */}
+                        {isSetInputOpen && isSetBased && (
+                          <div className="border-t border-card-border px-4 py-3 space-y-2">
+                            {(setInputs[preset.id] ?? []).map((set, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <span className="text-xs text-muted w-12 shrink-0">セット{i + 1}</span>
+                                {!isHome && (
+                                  <>
+                                    <input
+                                      type="number"
+                                      inputMode="decimal"
+                                      value={set.weight_kg ?? ""}
+                                      onChange={(e) => updateSetField(preset.id, i, "weight_kg", Number(e.target.value))}
+                                      className="w-16 px-2 py-1.5 text-sm bg-card-hover rounded-lg text-center border border-card-border focus:border-accent outline-none"
+                                      placeholder="kg"
+                                    />
+                                    <span className="text-xs text-muted">kg</span>
+                                    <span className="text-xs text-muted">×</span>
+                                  </>
+                                )}
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  value={set.reps || ""}
+                                  onChange={(e) => updateSetField(preset.id, i, "reps", Number(e.target.value))}
+                                  className="w-16 px-2 py-1.5 text-sm bg-card-hover rounded-lg text-center border border-card-border focus:border-accent outline-none"
+                                  placeholder="回"
+                                />
+                                <span className="text-xs text-muted">回</span>
+                                {(setInputs[preset.id] ?? []).length > 1 && (
+                                  <button
+                                    onClick={() => removeSetRow(preset.id, i)}
+                                    className="text-xs text-red-400 hover:text-red-300 ml-auto"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <div className="flex items-center gap-2 pt-1">
+                              <button
+                                onClick={() => addSetRow(preset.id, isHome)}
+                                className="text-xs text-accent hover:text-accent/80 transition-colors"
+                              >
+                                + セット追加
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => handleLogWithSets(preset)}
+                              disabled={logging === preset.id}
+                              className="w-full py-2 text-sm font-medium bg-accent/20 text-accent hover:bg-accent/30 rounded-xl transition-colors mt-1"
+                            >
+                              {logging === preset.id ? "記録中..." : "記録する"}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Exercise details (expandable) */}
+                        {expandedId === preset.id && preset.exercises && preset.exercises.length > 0 && (
+                          <div className="border-t border-card-border px-4 py-3 space-y-1.5">
+                            {preset.exercises.map((ex, i) => (
+                              <div key={i} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted w-4 text-right">{i + 1}</span>
+                                  <span>{ex.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-muted">
+                                  <span>{ex.target}</span>
+                                  <span className="text-[10px]">{ex.duration}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Show log entries for this preset */}
+                        {thisLogs.length > 0 && (
+                          <div className="border-t border-card-border px-4 py-2.5">
+                            {thisLogs.map((log, logIdx) => (
+                              <div key={log.id} className="flex items-center justify-between py-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-muted">
+                                    {thisLogs.length > 1 ? `${logIdx + 1}回目` : "1回 実施"}
+                                  </span>
+                                  {log.estimated_calories > 0 && (
+                                    <span className="text-[10px] text-orange-400">
+                                      ~{log.estimated_calories}kcal
+                                    </span>
+                                  )}
+                                  {log.sets && (log.sets as WorkoutSet[]).length > 0 && (
+                                    <span className="text-[10px] text-muted">
+                                      {(log.sets as WorkoutSet[]).length}セット
+                                    </span>
+                                  )}
+                                  {/* Progressive overload indicator */}
+                                  {overloadResults[log.id] && (
+                                    <span
+                                      className={`text-[10px] ${
+                                        overloadResults[log.id].status === "up"
+                                          ? "text-green-400"
+                                          : overloadResults[log.id].status === "down"
+                                            ? "text-yellow-400"
+                                            : "text-muted"
+                                      }`}
+                                    >
+                                      {overloadResults[log.id].status === "up" && "⬆️ "}
+                                      {overloadResults[log.id].status === "same" && "→ "}
+                                      {overloadResults[log.id].status === "down" && "⬇️ "}
+                                      {overloadResults[log.id].detail}
+                                    </span>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => handleRemoveLog(log.id)}
+                                  className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                                >
+                                  取消
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
