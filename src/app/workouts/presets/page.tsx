@@ -126,31 +126,42 @@ export default function PresetsPage() {
         {presets.map((preset) => (
           <div
             key={preset.id}
-            className="card-gradient rounded-2xl p-3 flex items-center gap-3"
+            className="card-gradient rounded-2xl p-3"
           >
-            {preset.thumbnail_url && (
-              <img
-                src={preset.thumbnail_url}
-                alt=""
-                className="w-14 h-9 object-cover rounded"
-              />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm truncate">{preset.name}</p>
-              <p className="text-[10px] text-muted">
-                {preset.category}
-                {preset.duration_min ? ` / ${preset.duration_min}min` : ""}
-              </p>
+            <div className="flex items-center gap-3">
+              {preset.thumbnail_url && (
+                <img
+                  src={preset.thumbnail_url}
+                  alt=""
+                  className="w-14 h-9 object-cover rounded"
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">{preset.name}</p>
+                <p className="text-[10px] text-muted">
+                  {preset.category === "youtube" ? "YouTube" : preset.category === "chocozap" ? "chocoZAP" : "自宅"}
+                  {preset.duration_min ? ` / ${preset.duration_min}分` : ""}
+                  {preset.exercises && preset.exercises.length > 0 ? ` / ${preset.exercises.length}種目` : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => handleDelete(preset.id)}
+                className="text-muted hover:text-red-400 p-1"
+              >
+                ×
+              </button>
             </div>
-            <button
-              onClick={() => handleDelete(preset.id)}
-              className="text-muted hover:text-red-400 p-1"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+            {/* Show exercises if any */}
+            {preset.exercises && preset.exercises.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-card-border space-y-0.5">
+                {preset.exercises.map((ex, i) => (
+                  <div key={i} className="flex justify-between text-[10px] text-muted">
+                    <span>{i + 1}. {ex.name}{ex.target ? ` (${ex.target})` : ""}</span>
+                    {ex.duration && <span>{ex.duration}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -270,9 +281,10 @@ export default function PresetsPage() {
 
           {/* Exercises - dynamic add/remove */}
           <div>
-            <label className="block text-xs text-muted mb-1">種目一覧（任意）</label>
+            <label className="block text-xs text-muted mb-2">種目一覧（任意）</label>
             {exercises.map((ex, idx) => (
-              <div key={idx} className="flex gap-1.5 mb-1.5">
+              <div key={idx} className="flex gap-1.5 mb-2 items-center">
+                <span className="text-xs text-muted w-5 text-right shrink-0">{idx + 1}</span>
                 <input
                   type="text"
                   value={ex.name}
@@ -281,8 +293,8 @@ export default function PresetsPage() {
                     next[idx] = { ...ex, name: e.target.value };
                     setExercises(next);
                   }}
-                  placeholder="種目名"
-                  className="flex-[2] px-2 py-1.5 card-gradient rounded-lg text-xs"
+                  placeholder="種目名（例: チェストプレス）"
+                  className="flex-[3] px-2 py-1.5 card-gradient rounded-lg text-xs"
                 />
                 <input
                   type="text"
@@ -292,8 +304,8 @@ export default function PresetsPage() {
                     next[idx] = { ...ex, target: e.target.value };
                     setExercises(next);
                   }}
-                  placeholder="部位"
-                  className="flex-1 px-2 py-1.5 card-gradient rounded-lg text-xs"
+                  placeholder="部位（例: 胸）"
+                  className="flex-[1.5] px-2 py-1.5 card-gradient rounded-lg text-xs"
                 />
                 <input
                   type="text"
@@ -303,17 +315,14 @@ export default function PresetsPage() {
                     next[idx] = { ...ex, duration: e.target.value };
                     setExercises(next);
                   }}
-                  placeholder="時間"
-                  className="flex-1 px-2 py-1.5 card-gradient rounded-lg text-xs"
+                  placeholder="回数/時間（例: 10回）"
+                  className="flex-[1.5] px-2 py-1.5 card-gradient rounded-lg text-xs"
                 />
                 <button
                   onClick={() => setExercises(exercises.filter((_, i) => i !== idx))}
-                  className="text-muted hover:text-red-400 px-1"
+                  className="text-muted hover:text-red-400 px-1 shrink-0"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  ×
                 </button>
               </div>
             ))}
