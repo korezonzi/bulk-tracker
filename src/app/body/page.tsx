@@ -1,11 +1,26 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { calculatePfcTargets, calculateLeanMass } from "@/lib/calc";
 
 type InputMode = "screenshot" | "manual";
+type PhotoLabel = "front" | "side";
+
+const PHOTO_LABELS: Record<PhotoLabel, string> = {
+  front: "前面",
+  side: "側面",
+};
+
+const BUCKET_NAME = "body-screenshots";
+const PHOTO_PREFIX = "body-photos";
+
+interface StoredPhoto {
+  date: string;
+  label: PhotoLabel;
+  url: string;
+}
 
 export default function BodyPage() {
   const router = useRouter();
@@ -20,6 +35,92 @@ export default function BodyPage() {
   const [muscleMass, setMuscleMass] = useState<number | null>(null);
   const [leanMass, setLeanMass] = useState<number | null>(null);
   const [bmr, setBmr] = useState<number | null>(null);
+
+  // Body photo state
+  const frontPhotoRef = useRef<HTMLInputElement>(null);
+  const sidePhotoRef = useRef<HTMLInputElement>(null);
+  const [frontPreview, setFrontPreview] = useState<string | null>(null);
+  const [sidePreview, setSidePreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState<PhotoLabel | null>(null);
+  const [pastPhotos, setPastPhotos] = useState<StoredPhoto[]>([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(true);
+
+  // Load past body photos
+  const loadPastPhotos = useCallback(async () => {
+    setLoadingPhotos(true);
+    const { data: files } = await supabase.storage
+      .from(BUCKET_NAME)
+      .list(PHOTO_PREFIX, { sortBy: { column: "name", order: "desc" } });
+
+    if (files) {
+      const photos: StoredPhoto[] = files
+        .filter((f) => f.name.endsWith(".jpg"))
+        .map((f) => {
+          // filename format: {date}_front.jpg or {date}_side.jpg
+          const nameParts = f.name.replace(".jpg", "").split("_");
+          const label = nameParts.pop() as PhotoLabel;
+          const date = nameParts.join("_"); // handles YYYY-MM-DD format
+          const { data: { publicUrl } } = supabase.storage
+            .from(BUCKET_NAME)
+            .getPublicUrl(`${PHOTO_PREFIX}/${f.name}`);
+          return { date, label, url: publicUrl };
+        })
+        .filter((p) => p.label === "front" || p.label === "side");
+      setPastPhotos(photos);
+
+      // Set today's previews if they exist
+      const today = new Date().toISOString().split("T")[0];
+      const todayFront = photos.find((p) => p.date === today && p.label === "front");
+      const todaySide = photos.find((p) => p.date === today && p.label === "side");
+      if (todayFront) setFrontPreview(todayFront.url);
+      if (todaySide) setSidePreview(todaySide.url);
+    }
+    setLoadingPhotos(false);
+  }, []);
+
+  useEffect(() => {
+    loadPastPhotos();
+  }, [loadPastPhotos]);
+
+  async function handlePhotoUpload(file: File, label: PhotoLabel) {
+    setUploadingPhoto(label);
+    try {
+      const { default: imageCompression } = await import("browser-image-compression");
+      const compressed = await imageCompression(file, {
+        maxWidthOrHeight: 1200,
+        initialQuality: 0.8,
+        useWebWorker: true,
+      });
+
+      const today = new Date().toISOString().split("T")[0];
+      const path = `${PHOTO_PREFIX}/${today}_${label}.jpg`;
+
+      const { error } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(path, compressed, { contentType: "image/jpeg", upsert: true });
+
+      if (error) {
+        console.error("Photo upload error:", error);
+        return;
+      }
+
+      // Generate preview from compressed file
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        if (label === "front") setFrontPreview(dataUrl);
+        else setSidePreview(dataUrl);
+      };
+      reader.readAsDataURL(compressed);
+
+      // Reload past photos to include the new one
+      await loadPastPhotos();
+    } catch (error) {
+      console.error("Photo compression/upload error:", error);
+    } finally {
+      setUploadingPhoto(null);
+    }
+  }
 
   async function handleScreenshot(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -234,6 +335,18 @@ export default function BodyPage() {
           </button>
         </div>
       )}
+
+      {/* Body photo section */}
+      <BodyPhotoSection
+        frontPreview={frontPreview}
+        sidePreview={sidePreview}
+        uploadingPhoto={uploadingPhoto}
+        frontPhotoRef={frontPhotoRef}
+        sidePhotoRef={sidePhotoRef}
+        onPhotoUpload={handlePhotoUpload}
+        pastPhotos={pastPhotos}
+        loadingPhotos={loadingPhotos}
+      />
     </div>
   );
 }
@@ -262,6 +375,225 @@ function BodyInput({
         />
         <span className="text-xs text-muted w-8">{unit}</span>
       </div>
+    </div>
+  );
+}
+
+// ─── Body Photo Section ─────────────────────────────────────────
+
+interface BodyPhotoSectionProps {
+  frontPreview: string | null;
+  sidePreview: string | null;
+  uploadingPhoto: PhotoLabel | null;
+  frontPhotoRef: React.RefObject<HTMLInputElement | null>;
+  sidePhotoRef: React.RefObject<HTMLInputElement | null>;
+  onPhotoUpload: (file: File, label: PhotoLabel) => void;
+  pastPhotos: StoredPhoto[];
+  loadingPhotos: boolean;
+}
+
+function BodyPhotoSection({
+  frontPreview,
+  sidePreview,
+  uploadingPhoto,
+  frontPhotoRef,
+  sidePhotoRef,
+  onPhotoUpload,
+  pastPhotos,
+  loadingPhotos,
+}: BodyPhotoSectionProps) {
+  // Group past photos by month
+  const photosByMonth = pastPhotos.reduce<Record<string, StoredPhoto[]>>((acc, photo) => {
+    const month = photo.date.slice(0, 7); // YYYY-MM
+    if (!acc[month]) acc[month] = [];
+    acc[month].push(photo);
+    return acc;
+  }, {});
+
+  const sortedMonths = Object.keys(photosByMonth).sort().reverse();
+
+  // Before/After comparison: find oldest and newest front photos
+  const frontPhotos = pastPhotos
+    .filter((p) => p.label === "front")
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const oldestFront = frontPhotos[0] ?? null;
+  const newestFront = frontPhotos.length > 1 ? frontPhotos[frontPhotos.length - 1] : null;
+
+  return (
+    <div className="space-y-5">
+      <h2 className="text-xl font-bold tracking-tight">📷 体型写真</h2>
+
+      {/* Upload buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Front photo */}
+        <div>
+          <input
+            ref={frontPhotoRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onPhotoUpload(file, "front");
+            }}
+            className="hidden"
+          />
+          {frontPreview ? (
+            <button
+              onClick={() => frontPhotoRef.current?.click()}
+              className="w-full relative rounded-2xl overflow-hidden"
+            >
+              <img src={frontPreview} alt="前面" className="w-full h-40 object-cover" />
+              {uploadingPhoto === "front" && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
+                前面
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => frontPhotoRef.current?.click()}
+              disabled={uploadingPhoto === "front"}
+              className="w-full h-40 bg-card border-2 border-dashed border-card-border rounded-2xl flex flex-col items-center justify-center gap-1 text-muted disabled:opacity-50"
+            >
+              {uploadingPhoto === "front" ? (
+                <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  <span className="text-xs">前面を撮影</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Side photo */}
+        <div>
+          <input
+            ref={sidePhotoRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onPhotoUpload(file, "side");
+            }}
+            className="hidden"
+          />
+          {sidePreview ? (
+            <button
+              onClick={() => sidePhotoRef.current?.click()}
+              className="w-full relative rounded-2xl overflow-hidden"
+            >
+              <img src={sidePreview} alt="側面" className="w-full h-40 object-cover" />
+              {uploadingPhoto === "side" && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              <span className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
+                側面
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => sidePhotoRef.current?.click()}
+              disabled={uploadingPhoto === "side"}
+              className="w-full h-40 bg-card border-2 border-dashed border-card-border rounded-2xl flex flex-col items-center justify-center gap-1 text-muted disabled:opacity-50"
+            >
+              {uploadingPhoto === "side" ? (
+                <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  <span className="text-xs">側面を撮影</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Before/After comparison */}
+      {oldestFront && newestFront && oldestFront.date !== newestFront.date && (
+        <div className="card-gradient rounded-2xl p-4 space-y-3">
+          <p className="text-sm font-medium">Before / After</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <img src={oldestFront.url} alt="Before" className="w-full h-48 object-cover rounded-xl" />
+              <p className="text-[10px] text-muted text-center">{oldestFront.date}</p>
+            </div>
+            <div className="space-y-1">
+              <img src={newestFront.url} alt="After" className="w-full h-48 object-cover rounded-xl" />
+              <p className="text-[10px] text-muted text-center">{newestFront.date}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Past photos by month */}
+      {loadingPhotos ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : sortedMonths.length > 0 ? (
+        <div className="space-y-4">
+          <p className="text-sm font-medium">過去の体型写真</p>
+          {sortedMonths.map((month) => {
+            const monthPhotos = photosByMonth[month];
+            // Group by date within month
+            const dateMap = monthPhotos.reduce<Record<string, StoredPhoto[]>>((acc, p) => {
+              if (!acc[p.date]) acc[p.date] = [];
+              acc[p.date].push(p);
+              return acc;
+            }, {});
+            const sortedDates = Object.keys(dateMap).sort().reverse();
+
+            return (
+              <div key={month} className="space-y-2">
+                <p className="text-xs text-muted">
+                  {new Date(month + "-01").toLocaleDateString("ja-JP", { year: "numeric", month: "long" })}
+                </p>
+                <div className="space-y-2">
+                  {sortedDates.map((date) => (
+                    <div key={date} className="card-gradient rounded-xl p-3">
+                      <p className="text-[10px] text-muted mb-2">
+                        {new Date(date + "T00:00:00").toLocaleDateString("ja-JP", { month: "short", day: "numeric", weekday: "short" })}
+                      </p>
+                      <div className="flex gap-2">
+                        {dateMap[date]
+                          .sort((a, b) => a.label.localeCompare(b.label))
+                          .map((photo) => (
+                            <div key={`${photo.date}-${photo.label}`} className="flex-1 relative">
+                              <img
+                                src={photo.url}
+                                alt={PHOTO_LABELS[photo.label]}
+                                className="w-full h-28 object-cover rounded-lg"
+                              />
+                              <span className="absolute bottom-1 left-1 text-[9px] bg-black/60 text-white px-1 py-0.5 rounded">
+                                {PHOTO_LABELS[photo.label]}
+                              </span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

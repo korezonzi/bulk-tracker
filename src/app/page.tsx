@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<{ date: string; count: number }[]>([]);
   const [muscleVolume, setMuscleVolume] = useState<WeeklyMuscleVolume[]>([]);
+  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -100,6 +101,42 @@ export default function Dashboard() {
         setMuscleVolume(calculateWeeklyVolume(weeklyLogs));
       }
 
+      // Calculate streak from meals + workout_logs
+      const sixtyDaysAgo = new Date();
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      const sixtyDaysAgoStr = formatDate(sixtyDaysAgo);
+
+      const [{ data: mealDates }, { data: workoutDatesAll }] = await Promise.all([
+        supabase
+          .from("meals")
+          .select("date")
+          .gte("date", sixtyDaysAgoStr)
+          .order("date", { ascending: false }),
+        supabase
+          .from("workout_logs")
+          .select("date")
+          .gte("date", sixtyDaysAgoStr)
+          .order("date", { ascending: false }),
+      ]);
+
+      // Union unique dates and compute streak
+      const recordedDates = new Set<string>();
+      mealDates?.forEach((m) => recordedDates.add(m.date));
+      workoutDatesAll?.forEach((w) => recordedDates.add(w.date));
+
+      let streakCount = 0;
+      const cursor = new Date();
+      while (true) {
+        const dateStr = formatDate(cursor);
+        if (recordedDates.has(dateStr)) {
+          streakCount++;
+          cursor.setDate(cursor.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      setStreak(streakCount);
+
       setLoading(false);
     }
     load();
@@ -142,6 +179,9 @@ export default function Dashboard() {
           </p>
         </button>
       </div>
+
+      {/* Streak display */}
+      {streak > 0 && <StreakBadge streak={streak} />}
 
       {/* Desktop: 2-column grid / Mobile: single column */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -298,8 +338,118 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Today's suggestion card */}
+          <TodaySuggestionCard
+            summary={summary}
+            profile={profile}
+            muscleVolume={muscleVolume}
+          />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Streak Badge Component ─────────────────────────────────────
+
+const MILESTONES: { days: number; message: string }[] = [
+  { days: 30, message: "1ヶ月達成！" },
+  { days: 21, message: "習慣化おめでとう！" },
+  { days: 14, message: "2週間継続！" },
+  { days: 7, message: "1週間達成！" },
+  { days: 3, message: "いい調子！" },
+];
+
+function StreakBadge({ streak }: { streak: number }) {
+  const milestone = MILESTONES.find((m) => m.days === streak);
+  const isMilestone = !!milestone;
+
+  return (
+    <div
+      className={`card-gradient rounded-2xl px-4 py-3 flex items-center gap-3 ${
+        isMilestone ? "ring-2 ring-accent/50" : ""
+      }`}
+    >
+      <span className={`font-bold font-num ${isMilestone ? "text-3xl" : "text-2xl"}`}>
+        🔥 {streak}日
+      </span>
+      <div>
+        <p className={`font-medium ${isMilestone ? "text-accent text-sm" : "text-xs"}`}>
+          {isMilestone ? milestone.message : "連続記録中！"}
+        </p>
+        {!isMilestone && streak > 0 && (
+          <p className="text-[10px] text-muted">
+            次の目標: {MILESTONES.filter((m) => m.days > streak).pop()?.days ?? 30}日
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Today's Suggestion Card ────────────────────────────────────
+
+interface TodaySuggestionCardProps {
+  summary: DailySummary;
+  profile: UserProfile;
+  muscleVolume: WeeklyMuscleVolume[];
+}
+
+// Workout suggestions for deficit muscle groups
+const MUSCLE_WORKOUT_SUGGESTIONS: Record<string, string> = {
+  chest: "ベンチプレスかダンベルフライがおすすめ",
+  back: "ラットプルダウンか懸垂がおすすめ",
+  legs: "スクワットかレッグプレスがおすすめ",
+  shoulders: "オーバーヘッドプレスかサイドレイズがおすすめ",
+  arms: "カールかトライセプスエクステンションがおすすめ",
+  core: "プランクかクランチがおすすめ",
+};
+
+function TodaySuggestionCard({ summary, profile, muscleVolume }: TodaySuggestionCardProps) {
+  type Suggestion = { icon: string; text: string };
+  const suggestions: Suggestion[] = [];
+
+  // Check if no records today
+  const noRecords = summary.meal_count === 0 && summary.workout_count === 0;
+  if (noRecords) {
+    suggestions.push({ icon: "📝", text: "まだ記録がないよ → 食事を記録しよう！" });
+  }
+
+  // Muscle volume deficit suggestions
+  const deficitMuscles = muscleVolume.filter((mv) => mv.sets < mv.target.min);
+  if (deficitMuscles.length > 0) {
+    const top = deficitMuscles[0];
+    const label = MUSCLE_GROUP_LABELS[top.muscleGroup];
+    const suggestion = MUSCLE_WORKOUT_SUGGESTIONS[top.muscleGroup] ?? "トレーニングしよう";
+    suggestions.push({
+      icon: "💪",
+      text: `${label}が不足 → ${suggestion}`,
+    });
+  }
+
+  // PFC deficit suggestions
+  const proteinDeficit = profile.target_protein - summary.total_protein;
+  if (proteinDeficit > 20 && !noRecords) {
+    const scoops = Math.ceil(proteinDeficit / 21);
+    suggestions.push({
+      icon: "🥤",
+      text: `タンパク質があと${Math.round(proteinDeficit)}g → プロテイン${scoops}杯で達成`,
+    });
+  }
+
+  if (suggestions.length === 0) {
+    suggestions.push({ icon: "✅", text: "今日はいい感じ！この調子で続けよう" });
+  }
+
+  return (
+    <div className="card-gradient rounded-2xl p-4 space-y-2">
+      <p className="text-xs text-muted">🎯 今日の提案</p>
+      {suggestions.map((s, i) => (
+        <p key={i} className="text-sm">
+          {s.icon} {s.text}
+        </p>
+      ))}
     </div>
   );
 }
