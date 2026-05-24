@@ -14,8 +14,8 @@ const MEAL_TYPES: { value: MealType; label: string; emoji: string }[] = [
 ];
 
 const PROTEIN_OPTIONS = [
-  { id: "plain", label: "プロテインのみ", calories: 120, protein: 24, fat: 1, carbs: 3 },
-  { id: "creatine", label: "クレアチン入り", calories: 125, protein: 24, fat: 1, carbs: 5 },
+  { id: "plain", label: "プロテインのみ", calories: 113, protein: 21, fat: 2.2, carbs: 4 },
+  { id: "creatine", label: "クレアチン入り", calories: 120, protein: 22.4, fat: 2.2, carbs: 4.2 },
 ] as const;
 
 const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];

@@ -320,7 +320,7 @@ function PfcAdvice({ proteinDeficit, fatDeficit, carbsDeficit, calorieDeficit }:
   if (proteinDeficit > 0) {
     const items: Suggestion[] = [];
     if (proteinDeficit > 20) {
-      items.push({ text: "プロテイン1杯", amount: "+24g" });
+      items.push({ text: "プロテイン1杯", amount: "+21g" });
       items.push({ text: "サラダチキン1個", amount: "+25g" });
     }
     if (proteinDeficit <= 20 || items.length < 3) {
