@@ -17,7 +17,7 @@ export function PfcRing({ current, target, label, color, unit = "g" }: PfcRingPr
   const isOver = diff > 0;
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-1">
       {/* Ring: responsive sizing */}
       <div className="relative w-24 h-24 md:w-28 md:h-28">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 88 88">
@@ -46,13 +46,16 @@ export function PfcRing({ current, target, label, color, unit = "g" }: PfcRingPr
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-base md:text-lg font-bold font-num">{Math.round(current)}</span>
-          <span className="text-[10px] text-muted">{unit}</span>
+          <span className="text-sm md:text-base font-bold font-num">{Math.round(percentage)}%</span>
         </div>
       </div>
       <span className="text-xs font-medium">{label}</span>
+      <span className="text-[11px] font-num">
+        <span className={isOver ? "text-yellow-400" : ""}>{Math.round(current)}</span>
+        <span className="text-muted">/{Math.round(target)}{unit}</span>
+      </span>
       <span className={`text-[10px] ${isOver ? "text-yellow-400" : "text-muted"}`}>
-        {isOver ? "+" : ""}{Math.round(diff)}{unit}
+        {diff > 0 ? `+${Math.round(diff)}` : Math.round(diff)}{unit}
       </span>
     </div>
   );

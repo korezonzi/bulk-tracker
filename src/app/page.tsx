@@ -196,13 +196,21 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Protein quick add link */}
-          <Link
-            href="/meals/add"
-            className="w-full py-4 card-gradient card-interactive rounded-2xl flex items-center justify-center gap-2 text-sm font-medium"
-          >
-            🥤 プロテインを記録
-          </Link>
+          {/* Quick links */}
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              href="/meals/add"
+              className="py-3 card-gradient card-interactive rounded-2xl flex items-center justify-center gap-1.5 text-sm font-medium"
+            >
+              🥤 プロテイン
+            </Link>
+            <Link
+              href="/guide"
+              className="py-3 card-gradient card-interactive rounded-2xl flex items-center justify-center gap-1.5 text-sm font-medium"
+            >
+              📖 食事ガイド
+            </Link>
+          </div>
 
           {/* Recent workout activity (7 days) */}
           <div className="card-gradient rounded-2xl p-4">
