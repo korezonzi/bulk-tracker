@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { CalorieBar } from "@/components/calorie-bar";
+import { PfcRing } from "@/components/pfc-ring";
 import type { Meal, UserProfile, DailySummary } from "@/lib/types";
 import { getToday, daysAgo } from "@/lib/date";
 import { adjustedDailyTarget } from "@/lib/calc";
@@ -34,14 +36,12 @@ export default function MealsPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-
       const [mealsRes, profileRes, summaryRes, recentRes] = await Promise.all([
         supabase.from("meals").select("*").eq("date", selectedDate).order("created_at", { ascending: true }),
         supabase.from("user_profile").select("*").limit(1).single(),
         supabase.from("daily_summary").select("*").eq("date", selectedDate).single(),
         supabase.from("daily_summary").select("*").gte("date", daysAgo(6)).order("date", { ascending: true }),
       ]);
-
       setMeals(mealsRes.data ?? []);
       setProfile(profileRes.data);
       setDaySummary(summaryRes.data);
@@ -71,12 +71,10 @@ export default function MealsPage() {
 
   const workoutCal = daySummary?.workout_calories ?? 0;
   const targetCal = profile ? adjustedDailyTarget(profile.target_calories, workoutCal) : 0;
-  const targetP = profile?.target_protein ?? 0;
-  const targetF = profile?.target_fat ?? 0;
-  const targetC = profile?.target_carbs ?? 0;
 
   return (
     <div className="py-6 md:py-10 space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
@@ -98,21 +96,20 @@ export default function MealsPage() {
         </Link>
       </div>
 
-      {/* PFC Summary with target diff */}
+      {/* Calorie bar (same as home) */}
       {profile && (
-        <div className="bg-card rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <PfcCell label="カロリー" current={totalCalories} target={targetCal} unit="kcal" color="" />
-            <PfcCell label="P" current={totalProtein} target={targetP} unit="g" color="text-protein" />
-            <PfcCell label="F" current={totalFat} target={targetF} unit="g" color="text-fat" />
-            <PfcCell label="C" current={totalCarbs} target={targetC} unit="g" color="text-carbs" />
-          </div>
-          {/* Progress bar */}
-          <div className="space-y-1.5">
-            <ProgressRow label="Cal" current={totalCalories} target={targetCal} color="bg-accent" />
-            <ProgressRow label="P" current={totalProtein} target={targetP} color="bg-protein" />
-            <ProgressRow label="F" current={totalFat} target={targetF} color="bg-fat" />
-            <ProgressRow label="C" current={totalCarbs} target={targetC} color="bg-carbs" />
+        <div className="bg-card rounded-xl p-4">
+          <CalorieBar current={totalCalories} target={targetCal} />
+        </div>
+      )}
+
+      {/* PFC rings (same as home) */}
+      {profile && (
+        <div className="bg-card rounded-xl p-4">
+          <div className="flex justify-around">
+            <PfcRing current={totalProtein} target={profile.target_protein} label="タンパク質" color="var(--protein)" />
+            <PfcRing current={totalFat} target={profile.target_fat} label="脂質" color="var(--fat)" />
+            <PfcRing current={totalCarbs} target={profile.target_carbs} label="炭水化物" color="var(--carbs)" />
           </div>
         </div>
       )}
@@ -165,7 +162,7 @@ export default function MealsPage() {
             {recentDays.map((day) => {
               const dayTarget = adjustedDailyTarget(profile.target_calories, day.workout_calories);
               const calPct = dayTarget > 0 ? Math.round((day.total_calories / dayTarget) * 100) : 0;
-              const pPct = targetP > 0 ? Math.round((day.total_protein / targetP) * 100) : 0;
+              const pPct = profile.target_protein > 0 ? Math.round((day.total_protein / profile.target_protein) * 100) : 0;
               const isToday = day.date === getToday();
               const dateLabel = day.date.slice(5).replace("-", "/");
 
@@ -195,20 +192,7 @@ export default function MealsPage() {
                     </div>
                     <span className={`text-[10px] font-num w-10 text-right ${
                       calPct >= 90 ? "text-accent" : calPct >= 70 ? "text-yellow-500" : "text-red-400"
-                    }`}>
-                      {calPct}%
-                    </span>
-                  </div>
-                  <div className="flex gap-1 items-center mt-0.5">
-                    <div className="flex-1 h-1.5 bg-card-border/30 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${pPct >= 90 ? "bg-protein" : "bg-protein/40"}`}
-                        style={{ width: `${Math.min(pPct, 100)}%` }}
-                      />
-                    </div>
-                    <span className={`text-[10px] font-num w-10 text-right ${pPct >= 90 ? "text-protein" : "text-muted"}`}>
-                      P{pPct}%
-                    </span>
+                    }`}>{calPct}%</span>
                   </div>
                 </button>
               );
@@ -216,39 +200,6 @@ export default function MealsPage() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// PFC cell with current/target display
-function PfcCell({ label, current, target, unit, color }: {
-  label: string; current: number; target: number; unit: string; color: string;
-}) {
-  const diff = current - target;
-  const pct = target > 0 ? Math.round((current / target) * 100) : 0;
-  return (
-    <div>
-      <p className="text-[10px] text-muted">{label}</p>
-      <p className={`text-base font-bold font-num ${color}`}>{Math.round(current)}</p>
-      <p className="text-[10px] text-muted font-num">/ {Math.round(target)}{unit}</p>
-      <p className={`text-[10px] font-num ${diff > 0 ? "text-yellow-400" : "text-muted"}`}>
-        {pct}%
-      </p>
-    </div>
-  );
-}
-
-// Inline progress bar
-function ProgressRow({ label, current, target, color }: {
-  label: string; current: number; target: number; color: string;
-}) {
-  const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0;
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-[10px] text-muted w-6">{label}</span>
-      <div className="flex-1 h-1.5 bg-card-border/30 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
     </div>
   );
 }
