@@ -162,7 +162,7 @@ export default function Dashboard() {
         </div>
         <button
           onClick={() => router.push("/body")}
-          className="text-right card-gradient card-interactive rounded-2xl px-4 py-3"
+          className="text-right bg-card card-hover rounded-xl px-4 py-3"
         >
           <p className="text-2xl md:text-3xl font-bold font-num">📊 {profile.weight}kg</p>
           <p className="text-xs text-accent">
@@ -179,7 +179,7 @@ export default function Dashboard() {
         {/* Left column */}
         <div className="space-y-4 md:space-y-6">
           {/* Calorie Progress */}
-          <div className="card-gradient rounded-3xl p-5 md:p-6">
+          <div className="bg-card rounded-xl p-5 md:p-6">
             <CalorieBar current={summary.total_calories} target={adjustedTarget} />
             {summary.workout_calories > 0 && (
               <p className="text-xs text-muted mt-2">
@@ -189,7 +189,7 @@ export default function Dashboard() {
           </div>
 
           {/* PFC Rings */}
-          <div className="card-gradient rounded-3xl p-5 md:p-6">
+          <div className="bg-card rounded-xl p-5 md:p-6">
             <div className="flex justify-around">
               <PfcRing
                 current={summary.total_protein}
@@ -225,11 +225,11 @@ export default function Dashboard() {
         <div className="space-y-4 md:space-y-6">
           {/* Today's Stats */}
           <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <div className="card-gradient card-interactive rounded-2xl p-4 md:p-5">
+            <div className="bg-card card-hover rounded-xl p-4 md:p-5">
               <p className="text-xs text-muted mb-1">🍽️ 食事</p>
               <p className="text-2xl md:text-3xl font-bold font-num">{summary.meal_count}</p>
             </div>
-            <div className="card-gradient card-interactive rounded-2xl p-4 md:p-5">
+            <div className="bg-card card-hover rounded-xl p-4 md:p-5">
               <p className="text-xs text-muted mb-1">💪 筋トレ</p>
               <p className="text-2xl md:text-3xl font-bold font-num">{summary.workout_count}</p>
             </div>
@@ -239,20 +239,20 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-3">
             <Link
               href="/meals/add"
-              className="py-3 card-gradient card-interactive rounded-2xl flex items-center justify-center gap-1.5 text-sm font-medium"
+              className="py-3 bg-card card-hover rounded-xl flex items-center justify-center gap-1.5 text-sm font-medium"
             >
               🥤 プロテイン
             </Link>
             <Link
               href="/guide"
-              className="py-3 card-gradient card-interactive rounded-2xl flex items-center justify-center gap-1.5 text-sm font-medium"
+              className="py-3 bg-card card-hover rounded-xl flex items-center justify-center gap-1.5 text-sm font-medium"
             >
               📖 食事ガイド
             </Link>
           </div>
 
           {/* Recent workout activity (7 days) */}
-          <div className="card-gradient rounded-2xl p-4">
+          <div className="bg-card rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-muted">💪 直近7日の筋トレ</p>
               <Link href="/progress" className="text-[10px] text-accent">詳細 →</Link>
@@ -283,7 +283,7 @@ export default function Dashboard() {
 
           {/* Weekly muscle volume balance */}
           {muscleVolume.length > 0 && (
-            <div className="card-gradient rounded-2xl p-4">
+            <div className="bg-card rounded-xl p-4">
               <p className="text-xs text-muted mb-3">📊 今週の筋トレバランス</p>
               <div className="space-y-2">
                 {muscleVolume.map((mv) => {
@@ -358,7 +358,7 @@ function StreakBadge({ streak }: { streak: number }) {
 
   return (
     <div
-      className={`card-gradient rounded-2xl px-4 py-3 flex items-center gap-3 ${
+      className={`bg-card rounded-xl px-4 py-3 flex items-center gap-3 ${
         isMilestone ? "ring-2 ring-accent/50" : ""
       }`}
     >
@@ -434,7 +434,7 @@ function TodaySuggestionCard({ summary, profile, muscleVolume }: TodaySuggestion
   }
 
   return (
-    <div className="card-gradient rounded-2xl p-4 space-y-2">
+    <div className="bg-card rounded-xl p-4 space-y-2">
       <p className="text-xs text-muted">🎯 今日の提案</p>
       {suggestions.map((s, i) => (
         <p key={i} className="text-sm">
@@ -506,14 +506,14 @@ function PfcAdvice({ proteinDeficit, fatDeficit, carbsDeficit, calorieDeficit }:
   // All targets met
   if (suggestions.length === 0) {
     return (
-      <div className="card-gradient rounded-2xl p-4 text-center">
+      <div className="bg-card rounded-xl p-4 text-center">
         <p className="text-sm font-medium">🎉 今日のPFCは達成済み！</p>
       </div>
     );
   }
 
   return (
-    <div className="card-gradient rounded-2xl p-4 space-y-3">
+    <div className="bg-card rounded-xl p-4 space-y-3">
       <p className="text-sm font-medium">💡 あと少し！</p>
       {suggestions.map((s) => (
         <div key={s.label} className="space-y-1">

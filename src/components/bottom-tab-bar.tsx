@@ -18,7 +18,7 @@ export function BottomTabBar() {
   if (pathname === "/setup") return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 md:hidden card-glass safe-bottom z-50">
+    <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-card safe-bottom z-50">
       <div className="flex items-center justify-around h-14">
         {tabs.map((tab) => {
           const isActive = tab.href === "/"
@@ -30,7 +30,7 @@ export function BottomTabBar() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className="flex items-center justify-center w-12 h-12 -mt-4 rounded-2xl bg-accent text-white shadow-lg shadow-accent/30 active:scale-90 transition-transform"
+                className="flex items-center justify-center w-12 h-12 -mt-4 rounded-xl bg-accent text-white active:scale-90 transition-transform"
               >
                 <tab.icon />
               </Link>

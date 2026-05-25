@@ -152,11 +152,10 @@ export default function ProgressPage() {
   })();
 
   const tooltipStyle = {
-    backgroundColor: "rgba(20, 20, 25, 0.95)",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
+    backgroundColor: "#1A1A2E",
+    border: "1px solid rgba(255, 255, 255, 0.06)",
     borderRadius: 12,
     fontSize: 12,
-    backdropFilter: "blur(8px)",
   };
 
   return (
@@ -171,8 +170,8 @@ export default function ProgressPage() {
             onClick={() => setPeriod(p)}
             className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
               period === p
-                ? "bg-accent text-white shadow-md shadow-accent/20"
-                : "card-gradient text-muted hover:text-foreground"
+                ? "bg-accent text-white "
+                : "bg-card text-muted hover:text-foreground"
             }`}
           >
             {p}
@@ -184,7 +183,7 @@ export default function ProgressPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         {/* Weight Chart */}
         {weightData.length > 0 && (
-          <div className="card-gradient rounded-3xl p-5 md:p-6">
+          <div className="bg-card rounded-xl p-5 md:p-6">
             <h2 className="text-sm font-medium mb-4">体重</h2>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={weightData}>
@@ -219,7 +218,7 @@ export default function ProgressPage() {
 
         {/* Calorie Chart */}
         {calorieData.length > 0 && (
-          <div className="card-gradient rounded-3xl p-5 md:p-6">
+          <div className="bg-card rounded-xl p-5 md:p-6">
             <h2 className="text-sm font-medium mb-4">カロリー</h2>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={calorieData}>
@@ -242,7 +241,7 @@ export default function ProgressPage() {
 
         {/* Workout Calories Chart */}
         {workoutCalorieData.length > 0 && (
-          <div className="card-gradient rounded-3xl p-5 md:p-6">
+          <div className="bg-card rounded-xl p-5 md:p-6">
             <h2 className="text-sm font-medium mb-4">🔥 筋トレ消費カロリー</h2>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={workoutCalorieData}>
@@ -258,7 +257,7 @@ export default function ProgressPage() {
 
         {/* Lean Mass Chart */}
         {leanMassData.length > 0 && (
-          <div className="card-gradient rounded-3xl p-5 md:p-6">
+          <div className="bg-card rounded-xl p-5 md:p-6">
             <h2 className="text-sm font-medium mb-4">💪 除脂肪体重</h2>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={leanMassData}>
@@ -293,7 +292,7 @@ export default function ProgressPage() {
 
         {/* PFC Chart */}
         {pfcData.length > 0 && (
-          <div className="card-gradient rounded-3xl p-5 md:p-6 md:col-span-2">
+          <div className="bg-card rounded-xl p-5 md:p-6 md:col-span-2">
             <h2 className="text-sm font-medium mb-4">PFCバランス</h2>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={pfcData}>
@@ -312,7 +311,7 @@ export default function ProgressPage() {
 
       {/* Weekly muscle volume stacked bar chart */}
       {weeklyVolumeData.length > 0 && (
-        <div className="card-gradient rounded-3xl p-5 md:p-6">
+        <div className="bg-card rounded-xl p-5 md:p-6">
           <h2 className="text-sm font-medium mb-4">📊 週間トレーニングボリューム</h2>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={weeklyVolumeData}>

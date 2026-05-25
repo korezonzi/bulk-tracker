@@ -72,19 +72,19 @@ export default function MealsPage() {
             value={selectedDate}
             max={getToday()}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="card-gradient rounded-xl px-2 py-1 text-xs text-muted"
+            className="bg-card rounded-xl px-2 py-1 text-xs text-muted"
           />
         </div>
         <Link
           href={`/meals/add?date=${selectedDate}`}
-          className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium shadow-md shadow-accent/20 active:scale-95 transition-transform"
+          className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium active:scale-95 transition-transform"
         >
           + 追加
         </Link>
       </div>
 
       {/* Summary */}
-      <div className="card-gradient rounded-2xl p-3">
+      <div className="bg-card rounded-xl p-3">
         <div className="grid grid-cols-4 text-center text-xs">
           <div>
             <p className="text-muted">カロリー</p>
@@ -117,7 +117,7 @@ export default function MealsPage() {
           {meals.map((meal) => (
             <div
               key={meal.id}
-              className="card-gradient rounded-2xl p-3"
+              className="bg-card rounded-xl p-3"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">

@@ -244,7 +244,7 @@ export default function BodyPage() {
           className={`flex-1 py-2 rounded-lg text-sm font-medium ${
             mode === "screenshot"
               ? "bg-accent text-white"
-              : "card-gradient text-muted"
+              : "bg-card text-muted"
           }`}
         >
           Fitdaysスクショ
@@ -254,7 +254,7 @@ export default function BodyPage() {
           className={`flex-1 py-2 rounded-lg text-sm font-medium ${
             mode === "manual"
               ? "bg-accent text-white"
-              : "card-gradient text-muted"
+              : "bg-card text-muted"
           }`}
         >
           手入力
@@ -274,7 +274,7 @@ export default function BodyPage() {
           {!preview ? (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-40 bg-card border-2 border-dashed border-card-border rounded-2xl flex flex-col items-center justify-center gap-2 text-muted"
+              className="w-full h-40 bg-card border-2 border-dashed border-card-border rounded-xl flex flex-col items-center justify-center gap-2 text-muted"
             >
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -288,10 +288,10 @@ export default function BodyPage() {
               <img
                 src={preview}
                 alt="Fitdays screenshot"
-                className="w-full h-40 object-contain bg-card rounded-2xl"
+                className="w-full h-40 object-contain bg-card rounded-xl"
               />
               {analyzing && (
-                <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     <span className="text-white text-sm">読み取り中...</span>
@@ -364,7 +364,7 @@ function BodyInput({
   unit: string;
 }) {
   return (
-    <div className="flex items-center justify-between card-gradient rounded-lg px-3 py-2">
+    <div className="flex items-center justify-between bg-card rounded-lg px-3 py-2">
       <label className="text-sm">{label}</label>
       <div className="flex items-center gap-1">
         <input
@@ -442,7 +442,7 @@ function BodyPhotoSection({
           {frontPreview ? (
             <button
               onClick={() => frontPhotoRef.current?.click()}
-              className="w-full relative rounded-2xl overflow-hidden"
+              className="w-full relative rounded-xl overflow-hidden"
             >
               <img src={frontPreview} alt="前面" className="w-full h-40 object-cover" />
               {uploadingPhoto === "front" && (
@@ -458,7 +458,7 @@ function BodyPhotoSection({
             <button
               onClick={() => frontPhotoRef.current?.click()}
               disabled={uploadingPhoto === "front"}
-              className="w-full h-40 bg-card border-2 border-dashed border-card-border rounded-2xl flex flex-col items-center justify-center gap-1 text-muted disabled:opacity-50"
+              className="w-full h-40 bg-card border-2 border-dashed border-card-border rounded-xl flex flex-col items-center justify-center gap-1 text-muted disabled:opacity-50"
             >
               {uploadingPhoto === "front" ? (
                 <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -491,7 +491,7 @@ function BodyPhotoSection({
           {sidePreview ? (
             <button
               onClick={() => sidePhotoRef.current?.click()}
-              className="w-full relative rounded-2xl overflow-hidden"
+              className="w-full relative rounded-xl overflow-hidden"
             >
               <img src={sidePreview} alt="側面" className="w-full h-40 object-cover" />
               {uploadingPhoto === "side" && (
@@ -507,7 +507,7 @@ function BodyPhotoSection({
             <button
               onClick={() => sidePhotoRef.current?.click()}
               disabled={uploadingPhoto === "side"}
-              className="w-full h-40 bg-card border-2 border-dashed border-card-border rounded-2xl flex flex-col items-center justify-center gap-1 text-muted disabled:opacity-50"
+              className="w-full h-40 bg-card border-2 border-dashed border-card-border rounded-xl flex flex-col items-center justify-center gap-1 text-muted disabled:opacity-50"
             >
               {uploadingPhoto === "side" ? (
                 <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -527,7 +527,7 @@ function BodyPhotoSection({
 
       {/* Before/After comparison */}
       {oldestFront && newestFront && oldestFront.date !== newestFront.date && (
-        <div className="card-gradient rounded-2xl p-4 space-y-3">
+        <div className="bg-card rounded-xl p-4 space-y-3">
           <p className="text-sm font-medium">Before / After</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
@@ -567,7 +567,7 @@ function BodyPhotoSection({
                 </p>
                 <div className="space-y-2">
                   {sortedDates.map((date) => (
-                    <div key={date} className="card-gradient rounded-xl p-3">
+                    <div key={date} className="bg-card rounded-xl p-3">
                       <p className="text-[10px] text-muted mb-2">
                         {new Date(date + "T00:00:00").toLocaleDateString("ja-JP", { month: "short", day: "numeric", weekday: "short" })}
                       </p>

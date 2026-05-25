@@ -243,7 +243,7 @@ export default function ReviewPage() {
       </div>
 
       {/* Summary stats */}
-      <div className="card-gradient rounded-2xl p-4 space-y-3">
+      <div className="bg-card rounded-xl p-4 space-y-3">
         <h2 className="text-sm font-medium text-muted">今週のサマリー</h2>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
@@ -273,7 +273,7 @@ export default function ReviewPage() {
       <button
         onClick={generateReview}
         disabled={generating}
-        className="w-full py-3 rounded-2xl font-medium text-sm transition-all bg-accent text-white hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 rounded-xl font-medium text-sm transition-all bg-accent text-white hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {generating
           ? "生成中..."
@@ -284,21 +284,21 @@ export default function ReviewPage() {
 
       {/* Error */}
       {error && (
-        <div className="card-gradient rounded-2xl p-4 border border-red-500/30">
+        <div className="bg-card rounded-xl p-4 border border-red-500/30">
           <p className="text-sm text-red-400">{error}</p>
         </div>
       )}
 
       {/* Loading skeleton */}
       {generating && (
-        <div className="card-gradient rounded-2xl p-5 md:p-6">
+        <div className="bg-card rounded-xl p-5 md:p-6">
           <SkeletonBlock />
         </div>
       )}
 
       {/* Review result */}
       {review && !generating && (
-        <div className="card-gradient rounded-2xl p-5 md:p-6">
+        <div className="bg-card rounded-xl p-5 md:p-6">
           <div
             className="text-base md:text-lg leading-relaxed"
             style={{ whiteSpace: "pre-wrap" }}

@@ -269,7 +269,7 @@ export default function WorkoutsPage() {
         </div>
         <Link
           href="/workouts/presets"
-          className="px-4 py-2 text-xs card-gradient card-interactive rounded-xl text-muted"
+          className="px-4 py-2 text-xs bg-card card-hover rounded-xl text-muted"
         >
           メニュー編集
         </Link>
@@ -277,7 +277,7 @@ export default function WorkoutsPage() {
 
       {/* Calendar */}
       {showCalendar && (
-        <div className="card-gradient rounded-2xl p-4">
+        <div className="bg-card rounded-xl p-4">
           <CalendarPicker
             selectedDate={selectedDate}
             onSelectDate={(d) => { setSelectedDate(d); setShowCalendar(false); }}
@@ -287,7 +287,7 @@ export default function WorkoutsPage() {
       )}
 
       {/* Day log count + calories */}
-      <div className="card-gradient rounded-2xl p-4 md:p-5 text-center">
+      <div className="bg-card rounded-xl p-4 md:p-5 text-center">
         <p className="text-xs text-muted mb-1">{isToday ? "今日" : formatDisplayDate(selectedDate)}</p>
         <p className="text-3xl md:text-4xl font-bold font-num">
           {dayLogs.length} <span className="text-base font-normal text-muted">回</span>
@@ -333,7 +333,7 @@ export default function WorkoutsPage() {
                     return (
                       <div
                         key={preset.id}
-                        className="card-gradient rounded-2xl overflow-hidden"
+                        className="bg-card rounded-xl overflow-hidden"
                       >
                         <div className="flex items-center gap-3 p-4">
                           {/* Thumbnail for YouTube */}

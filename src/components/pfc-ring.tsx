@@ -44,7 +44,7 @@ export function PfcRing({ current, target, label, color, unit = "g" }: PfcRingPr
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             className="transition-all duration-1000 ease-out"
-            style={{ filter: `drop-shadow(0 0 4px ${color}40)` }}
+            style={{}}
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

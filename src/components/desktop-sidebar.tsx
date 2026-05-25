@@ -22,7 +22,7 @@ export function DesktopSidebar() {
     <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-56 md:border-r md:border-card-border/50 bg-background z-40">
       {/* Logo */}
       <div className="flex items-center gap-2 px-5 h-16 border-b border-card-border/50">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-indigo-400 flex items-center justify-center">
+        <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
           <span className="text-white text-xs font-bold">B</span>
         </div>
         <span className="text-sm font-semibold tracking-tight">Bulk Tracker</span>

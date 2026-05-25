@@ -278,7 +278,7 @@ function AddMealContent() {
 
       {/* Calendar */}
       {showCalendar && (
-        <div className="card-gradient rounded-2xl p-4">
+        <div className="bg-card rounded-xl p-4">
           <CalendarPicker selectedDate={selectedDate} onSelectDate={handleDateSelect} mealDates={mealDates} />
         </div>
       )}
@@ -309,10 +309,10 @@ function AddMealContent() {
               <button
                 key={opt.id}
                 onClick={() => setProteinOption(opt.id as "plain" | "creatine")}
-                className={`flex-1 rounded-2xl p-4 text-left transition-all ${
+                className={`flex-1 rounded-xl p-4 text-left transition-all ${
                   proteinOption === opt.id
                     ? "bg-accent/15 border border-accent/30"
-                    : "card-gradient"
+                    : "bg-card"
                 }`}
               >
                 <p className="font-medium text-sm mb-2">{opt.id === "plain" ? "🥤" : "💪"} {opt.label}</p>
@@ -329,10 +329,10 @@ function AddMealContent() {
           <button
             onClick={handleProteinSave}
             disabled={saving || proteinSaved}
-            className={`w-full py-4 rounded-2xl text-base font-bold transition-all active:scale-[0.98] ${
+            className={`w-full py-4 rounded-xl text-base font-bold transition-all active:scale-[0.98] ${
               proteinSaved
                 ? "bg-green-500/15 text-green-400 border border-green-500/30"
-                : "bg-accent text-white hover:shadow-lg hover:shadow-accent/25"
+                : "bg-accent text-white hover:bg-accent/90"
             }`}
           >
             {proteinSaved ? "✅ 記録しました！" : saving ? "保存中..." : "🥤 記録する"}
@@ -348,14 +348,14 @@ function AddMealContent() {
           {!preview ? (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-36 bg-card border-2 border-dashed border-card-border rounded-2xl flex flex-col items-center justify-center gap-2 text-muted hover:border-accent/40 transition-colors"
+              className="w-full h-36 bg-card border-2 border-dashed border-card-border rounded-xl flex flex-col items-center justify-center gap-2 text-muted hover:border-accent/40 transition-colors"
             >
               <span className="text-3xl">📷</span>
               <span className="text-sm">タップして写真を撮影</span>
             </button>
           ) : (
             <div className="relative">
-              <img src={preview} alt="" className="w-full h-36 object-cover rounded-2xl" />
+              <img src={preview} alt="" className="w-full h-36 object-cover rounded-xl" />
               <button
                 onClick={() => { setPreview(null); setPendingImage(null); setResult(null); }}
                 className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white text-xs"
@@ -369,14 +369,14 @@ function AddMealContent() {
             onChange={(e) => setTextInput(e.target.value)}
             placeholder="📝 メニューを入力（例: 牛丼大盛り、味噌汁）"
             rows={2}
-            className="w-full px-4 py-3 card-gradient rounded-xl text-sm resize-none placeholder:text-muted/50"
+            className="w-full px-4 py-3 bg-card rounded-xl text-sm resize-none placeholder:text-muted/50"
           />
 
           {/* Analyze button */}
           <button
             onClick={handleAnalyze}
             disabled={!canAnalyze}
-            className="w-full py-3 bg-accent text-white rounded-xl text-sm font-medium disabled:opacity-40 transition-all hover:shadow-lg hover:shadow-accent/25 active:scale-[0.98]"
+            className="w-full py-3 bg-accent text-white rounded-xl text-sm font-medium disabled:opacity-40 transition-all hover:bg-accent/90 active:scale-[0.98]"
           >
             {analyzing ? (
               <span className="flex items-center justify-center gap-2">
@@ -388,7 +388,7 @@ function AddMealContent() {
 
           {/* Skeleton loading */}
           {analyzing && (
-            <div className="card-gradient rounded-2xl p-5 space-y-3">
+            <div className="bg-card rounded-xl p-5 space-y-3">
               <div className="h-4 bg-card-border/50 rounded-lg animate-pulse w-2/3" />
               <div className="grid grid-cols-4 gap-2">
                 {[...Array(4)].map((_, i) => (
@@ -400,7 +400,7 @@ function AddMealContent() {
 
           {/* Result card */}
           {result && !analyzing && (
-            <div className="card-gradient rounded-2xl p-4 space-y-3">
+            <div className="bg-card rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                   result.confidence === "high" ? "bg-green-500/20 text-green-400"
@@ -430,7 +430,7 @@ function AddMealContent() {
             <button
               onClick={handleSave}
               disabled={!canSave}
-              className="w-full py-4 bg-accent text-white rounded-2xl text-base font-bold disabled:opacity-40 transition-all hover:shadow-lg hover:shadow-accent/25 active:scale-[0.98]"
+              className="w-full py-4 bg-accent text-white rounded-xl text-base font-bold disabled:opacity-40 transition-all hover:bg-accent/90 active:scale-[0.98]"
             >
               {saving ? "保存中..." : "💾 保存する"}
             </button>

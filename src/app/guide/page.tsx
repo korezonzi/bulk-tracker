@@ -160,7 +160,7 @@ export default function GuidePage() {
       </div>
 
       {/* Target summary */}
-      <div className="card-gradient rounded-2xl p-4">
+      <div className="bg-card rounded-xl p-4">
         <p className="text-xs text-muted mb-2">🎯 1日の目標</p>
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
@@ -186,7 +186,7 @@ export default function GuidePage() {
       <div className="space-y-3">
         <p className="text-sm font-medium">📋 1日のモデルプラン</p>
         {plan.map((meal, i) => (
-          <div key={i} className="card-gradient rounded-2xl p-4">
+          <div key={i} className="bg-card rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{meal.emoji}</span>
@@ -215,7 +215,7 @@ export default function GuidePage() {
       </div>
 
       {/* Total check */}
-      <div className="card-gradient rounded-2xl p-4">
+      <div className="bg-card rounded-xl p-4">
         <p className="text-xs text-muted mb-2">📊 プラン合計 vs 目標</p>
         <div className="grid grid-cols-4 gap-2 text-center text-xs">
           <div>
@@ -238,7 +238,7 @@ export default function GuidePage() {
       </div>
 
       {/* Tips */}
-      <div className="card-gradient rounded-2xl p-4 space-y-2">
+      <div className="bg-card rounded-xl p-4 space-y-2">
         <p className="text-sm font-medium">💡 リーンバルクのコツ</p>
         <ul className="space-y-1.5 text-xs text-muted">
           <li>• プロテインは筋トレ後30分以内 + 就寝前が効果的</li>

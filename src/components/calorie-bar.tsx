@@ -20,11 +20,8 @@ export function CalorieBar({ current, target }: CalorieBarProps) {
       </div>
       <div className="h-3 md:h-4 bg-white/[0.06] rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-accent to-indigo-400 rounded-full transition-all duration-1000 ease-out"
-          style={{
-            width: `${percentage}%`,
-            boxShadow: percentage > 0 ? "0 0 12px rgba(99, 102, 241, 0.3)" : "none",
-          }}
+          className="h-full bg-accent rounded-full transition-all duration-1000 ease-out"
+          style={{ width: `${percentage}%` }}
         />
       </div>
       <p className="text-xs text-muted">

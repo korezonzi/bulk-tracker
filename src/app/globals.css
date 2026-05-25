@@ -1,18 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0c0c0f;
-  --foreground: #f0f0f5;
-  --card: rgba(255, 255, 255, 0.04);
-  --card-hover: rgba(255, 255, 255, 0.07);
-  --card-border: rgba(255, 255, 255, 0.05);
-  --card-glass: rgba(255, 255, 255, 0.03);
+  --background: #121212;
+  --foreground: #FFFFFF;
+  --card: #1A1A2E;
+  --card-hover: #242438;
+  --card-border: rgba(255, 255, 255, 0.06);
   --accent: #6366f1;
-  --accent-glow: rgba(99, 102, 241, 0.15);
-  --protein: #f97316;
-  --fat: #facc15;
-  --carbs: #34d399;
-  --muted: #71717a;
+  --protein: #F97316;
+  --fat: #FACC15;
+  --carbs: #34D399;
+  --muted: #9CA3AF;
 }
 
 @theme inline {
@@ -21,9 +19,7 @@
   --color-card: var(--card);
   --color-card-hover: var(--card-hover);
   --color-card-border: var(--card-border);
-  --color-card-glass: var(--card-glass);
   --color-accent: var(--accent);
-  --color-accent-glow: var(--accent-glow);
   --color-protein: var(--protein);
   --color-fat: var(--fat);
   --color-carbs: var(--carbs);
@@ -45,36 +41,15 @@ body {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
 }
 
-/* Glass card effect */
-.card-glass {
-  background: var(--card-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--card-border);
-}
-
-/* Subtle gradient for cards */
-.card-gradient {
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.02) 50%,
-    rgba(255, 255, 255, 0.04) 100%
-  );
-  border: 1px solid var(--card-border);
-}
-
 /* Micro-interaction for tappable cards */
-.card-interactive {
-  transition: background-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+.card-hover {
+  transition: background-color 150ms ease;
 }
-.card-interactive:hover {
+.card-hover:hover {
   background-color: var(--card-hover);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px);
 }
-.card-interactive:active {
-  transform: scale(0.97);
+.card-hover:active {
+  transform: scale(0.98);
 }
 
 /* Mono font for numbers */

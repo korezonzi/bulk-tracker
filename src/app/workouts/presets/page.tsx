@@ -126,7 +126,7 @@ export default function PresetsPage() {
         {presets.map((preset) => (
           <div
             key={preset.id}
-            className="card-gradient rounded-2xl p-3"
+            className="bg-card rounded-xl p-3"
           >
             <div className="flex items-center gap-3">
               {preset.thumbnail_url && (
@@ -175,7 +175,7 @@ export default function PresetsPage() {
           + メニュー追加
         </button>
       ) : (
-        <div className="card-gradient rounded-2xl p-4 space-y-3">
+        <div className="bg-card rounded-xl p-4 space-y-3">
           {/* Category */}
           <div className="flex gap-2">
             {(["youtube", "chocozap", "home"] as WorkoutCategory[]).map((cat) => (
@@ -191,7 +191,7 @@ export default function PresetsPage() {
                 className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${
                   category === cat
                     ? "bg-accent text-white"
-                    : "card-gradient text-muted"
+                    : "bg-card text-muted"
                 }`}
               >
                 {cat === "youtube" ? "YouTube" : cat === "chocozap" ? "chocoZAP" : "自宅"}
@@ -209,7 +209,7 @@ export default function PresetsPage() {
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   placeholder="https://youtube.com/watch?v=..."
-                  className="flex-1 px-3 py-2 card-gradient rounded-lg text-sm"
+                  className="flex-1 px-3 py-2 bg-card rounded-lg text-sm"
                 />
                 <button
                   onClick={handleFetchYoutubeMeta}
@@ -241,7 +241,7 @@ export default function PresetsPage() {
                 value={machineName}
                 onChange={(e) => setMachineName(e.target.value)}
                 placeholder="例: チェストプレス、ラットプルダウン"
-                className="w-full px-3 py-2 card-gradient rounded-lg text-sm"
+                className="w-full px-3 py-2 bg-card rounded-lg text-sm"
               />
             </div>
           )}
@@ -260,7 +260,7 @@ export default function PresetsPage() {
                     ? "例: 上半身マシン"
                     : "例: 胸トレ5分"
               }
-              className="w-full px-3 py-2 card-gradient rounded-lg text-sm"
+              className="w-full px-3 py-2 bg-card rounded-lg text-sm"
             />
           </div>
 
@@ -276,7 +276,7 @@ export default function PresetsPage() {
                 setDurationMin(e.target.value ? Number(e.target.value) : null)
               }
               placeholder="30"
-              className="w-full px-3 py-2 card-gradient rounded-lg text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-full px-3 py-2 bg-card rounded-lg text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 
@@ -286,7 +286,7 @@ export default function PresetsPage() {
               {category === "youtube" ? "種目一覧（任意）" : "種目一覧"}
             </label>
             {exercises.map((ex, idx) => (
-              <div key={idx} className="card-gradient rounded-xl p-2.5 mb-2">
+              <div key={idx} className="bg-card rounded-xl p-2.5 mb-2">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <span className="text-xs text-muted w-5 text-center shrink-0">{idx + 1}</span>
                   <input

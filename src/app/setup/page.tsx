@@ -187,7 +187,7 @@ function NumberInput({
       <div className="flex items-center gap-3">
         <button
           onClick={() => onChange(Math.max(min, +(value - step).toFixed(1)))}
-          className="w-10 h-10 rounded-lg card-gradient flex items-center justify-center text-lg"
+          className="w-10 h-10 rounded-lg bg-card flex items-center justify-center text-lg"
         >
           -
         </button>
@@ -197,7 +197,7 @@ function NumberInput({
         </div>
         <button
           onClick={() => onChange(Math.min(max, +(value + step).toFixed(1)))}
-          className="w-10 h-10 rounded-lg card-gradient flex items-center justify-center text-lg"
+          className="w-10 h-10 rounded-lg bg-card flex items-center justify-center text-lg"
         >
           +
         </button>
@@ -218,7 +218,7 @@ function PreviewCard({
   const gainNeeded = targetWeight - weight;
 
   return (
-    <div className="card-gradient rounded-2xl p-5 space-y-4">
+    <div className="bg-card rounded-xl p-5 space-y-4">
       <h2 className="font-bold text-lg">🎯 1日の目標値</h2>
 
       <div className="text-center py-4">

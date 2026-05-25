@@ -85,14 +85,14 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setTargetWeight((v) => Math.max(40, +(v - 0.5).toFixed(1)))}
-              className="w-10 h-10 rounded-lg card-gradient flex items-center justify-center"
+              className="w-10 h-10 rounded-lg bg-card flex items-center justify-center"
             >
               -
             </button>
             <span className="text-2xl font-bold font-num flex-1 text-center">{targetWeight} kg</span>
             <button
               onClick={() => setTargetWeight((v) => Math.min(120, +(v + 0.5).toFixed(1)))}
-              className="w-10 h-10 rounded-lg card-gradient flex items-center justify-center"
+              className="w-10 h-10 rounded-lg bg-card flex items-center justify-center"
             >
               +
             </button>
@@ -104,7 +104,7 @@ export default function SettingsPage() {
           <select
             value={activityLevel}
             onChange={(e) => setActivityLevel(Number(e.target.value))}
-            className="w-full px-3 py-2 card-gradient rounded-lg"
+            className="w-full px-3 py-2 bg-card rounded-lg"
           >
             <option value={1.2}>デスクワーク中心 (1.2)</option>
             <option value={1.375}>軽い運動 (1.375)</option>
@@ -114,7 +114,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Preview */}
-        <div className="card-gradient rounded-xl p-4 space-y-2">
+        <div className="bg-card rounded-xl p-4 space-y-2">
           <h3 className="text-sm font-medium">更新後の目標値</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex justify-between">
