@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { calculateWeeklyVolume } from "@/lib/calc";
 import type { UserProfile, DailySummary, BodyMeasurement, WorkoutLog } from "@/lib/types";
+import { daysAgo } from "@/lib/date";
 
 interface WeekData {
   period: string;
@@ -30,10 +31,6 @@ interface WeekData {
 
 function formatDateJp(date: Date): string {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-}
-
-function formatDateIso(date: Date): string {
-  return date.toISOString().split("T")[0];
 }
 
 function buildWeekData(
@@ -154,10 +151,7 @@ export default function ReviewPage() {
 
   useEffect(() => {
     async function load() {
-      const now = new Date();
-      const weekAgo = new Date();
-      weekAgo.setDate(now.getDate() - 6);
-      const startDate = formatDateIso(weekAgo);
+      const startDate = daysAgo(6);
 
       const [profileRes, summaryRes, bodyRes, workoutRes] = await Promise.all([
         supabase.from("user_profile").select("*").limit(1).single(),

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { calculatePfcTargets, calculateLeanMass } from "@/lib/calc";
+import { getToday } from "@/lib/date";
 
 type InputMode = "screenshot" | "manual";
 type PhotoLabel = "front" | "side";
@@ -69,7 +70,7 @@ export default function BodyPage() {
       setPastPhotos(photos);
 
       // Set today's previews if they exist
-      const today = new Date().toISOString().split("T")[0];
+      const today = getToday();
       const todayFront = photos.find((p) => p.date === today && p.label === "front");
       const todaySide = photos.find((p) => p.date === today && p.label === "side");
       if (todayFront) setFrontPreview(todayFront.url);
@@ -92,7 +93,7 @@ export default function BodyPage() {
         useWebWorker: true,
       });
 
-      const today = new Date().toISOString().split("T")[0];
+      const today = getToday();
       const path = `${PHOTO_PREFIX}/${today}_${label}.jpg`;
 
       const { error } = await supabase.storage
@@ -177,7 +178,7 @@ export default function BodyPage() {
     if (weight <= 0) return;
     setSaving(true);
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = getToday();
     const computedLeanMass = leanMass ?? calculateLeanMass(weight, bodyFatPct);
 
     // Upsert body measurement

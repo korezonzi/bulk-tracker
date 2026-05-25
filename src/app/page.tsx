@@ -7,12 +7,9 @@ import { PfcRing } from "@/components/pfc-ring";
 import type { UserProfile, DailySummary, WorkoutLog, WeeklyMuscleVolume } from "@/lib/types";
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_EMOJI } from "@/lib/types";
 import { adjustedDailyTarget, calculateWeeklyVolume } from "@/lib/calc";
+import { getToday, daysAgo, toDateString } from "@/lib/date";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -46,7 +43,7 @@ export default function Dashboard() {
 
       setProfile(profileData);
 
-      const today = formatDate(new Date());
+      const today = getToday();
       const { data: summaryData } = await supabase
         .from("daily_summary")
         .select("*")
@@ -65,9 +62,7 @@ export default function Dashboard() {
       });
 
       // Fetch recent 7 days of workout activity
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-      const startDate = formatDate(sevenDaysAgo);
+      const startDate = daysAgo(6);
 
       const { data: workoutData } = await supabase
         .from("workout_logs")
@@ -83,9 +78,7 @@ export default function Dashboard() {
         // Build 7-day array
         const days: { date: string; count: number }[] = [];
         for (let i = 0; i < 7; i++) {
-          const d = new Date();
-          d.setDate(d.getDate() - 6 + i);
-          const ds = formatDate(d);
+          const ds = daysAgo(6 - i);
           days.push({ date: ds, count: countByDate.get(ds) ?? 0 });
         }
         setRecentWorkouts(days);
@@ -102,9 +95,7 @@ export default function Dashboard() {
       }
 
       // Calculate streak from meals + workout_logs
-      const sixtyDaysAgo = new Date();
-      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-      const sixtyDaysAgoStr = formatDate(sixtyDaysAgo);
+      const sixtyDaysAgoStr = daysAgo(60);
 
       const [{ data: mealDates }, { data: workoutDatesAll }] = await Promise.all([
         supabase
@@ -125,12 +116,12 @@ export default function Dashboard() {
       workoutDatesAll?.forEach((w) => recordedDates.add(w.date));
 
       let streakCount = 0;
-      const cursor = new Date();
+      let streakOffset = 0;
       while (true) {
-        const dateStr = formatDate(cursor);
+        const dateStr = daysAgo(streakOffset);
         if (recordedDates.has(dateStr)) {
           streakCount++;
-          cursor.setDate(cursor.getDate() - 1);
+          streakOffset++;
         } else {
           break;
         }
@@ -269,7 +260,7 @@ export default function Dashboard() {
             <div className="flex gap-1.5 justify-between">
               {recentWorkouts.map((day) => {
                 const dayLabel = new Date(day.date + "T00:00:00").toLocaleDateString("ja-JP", { weekday: "narrow" });
-                const isToday = day.date === formatDate(new Date());
+                const isToday = day.date === getToday();
                 return (
                   <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
                     <div

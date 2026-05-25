@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Meal } from "@/lib/types";
+import { getToday } from "@/lib/date";
 import Link from "next/link";
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
@@ -21,14 +22,10 @@ const MEAL_TYPE_ICONS: Record<string, string> = {
   protein: "🥤",
 };
 
-function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
-
 export default function MealsPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
+  const [selectedDate, setSelectedDate] = useState(getToday());
 
   useEffect(() => {
     async function load() {
@@ -68,12 +65,12 @@ export default function MealsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            🍽️ {selectedDate === formatDate(new Date()) ? "今日の食事" : "食事記録"}
+            🍽️ {selectedDate === getToday() ? "今日の食事" : "食事記録"}
           </h1>
           <input
             type="date"
             value={selectedDate}
-            max={formatDate(new Date())}
+            max={getToday()}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="card-gradient rounded-xl px-2 py-1 text-xs text-muted"
           />

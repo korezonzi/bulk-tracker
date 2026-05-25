@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getToday, parseDate } from "@/lib/date";
 import type { MealType } from "@/lib/types";
 
 const MEAL_TYPES: { value: MealType; label: string; emoji: string }[] = [
@@ -53,8 +54,7 @@ function CalendarPicker({
   onSelectDate: (date: string) => void;
   mealDates: Set<string>;
 }) {
-  const today = new Date();
-  const todayStr = formatDateStr(today);
+  const todayStr = getToday();
   const selected = parseDate(selectedDate);
   const [viewYear, setViewYear] = useState(selected.getFullYear());
   const [viewMonth, setViewMonth] = useState(selected.getMonth());
@@ -133,7 +133,7 @@ function AddMealContent() {
   const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const todayStr = formatDateStr(new Date());
+  const todayStr = getToday();
   const [selectedDate, setSelectedDate] = useState(searchParams.get("date") || todayStr);
   const [showCalendar, setShowCalendar] = useState(false);
   const [mealDates, setMealDates] = useState<Set<string>>(new Set());
@@ -460,11 +460,9 @@ function NutrientCard({ label, value, unit, color, editing, onTap, onChange }: {
   );
 }
 
-function formatDateStr(date: Date): string { return date.toISOString().split("T")[0]; }
-function parseDate(dateStr: string): Date { const [y, m, d] = dateStr.split("-").map(Number); return new Date(y, m - 1, d); }
 function formatDisplayDate(dateStr: string): string {
   const date = parseDate(dateStr);
-  const todayStr = formatDateStr(new Date());
+  const todayStr = getToday();
   if (dateStr === todayStr) return `今日 (${date.getMonth() + 1}/${date.getDate()})`;
   return `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAY_LABELS[date.getDay()]})`;
 }

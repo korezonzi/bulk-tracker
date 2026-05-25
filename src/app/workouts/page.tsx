@@ -10,6 +10,7 @@ import {
 } from "@/lib/calc";
 import type { WorkoutPreset, WorkoutLog, WorkoutSet, WorkoutCategory } from "@/lib/types";
 import { MUSCLE_GROUP_LABELS, MUSCLE_GROUP_EMOJI } from "@/lib/types";
+import { getToday, parseDate } from "@/lib/date";
 import Link from "next/link";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -29,20 +30,16 @@ const WEEKDAY_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
 const DEFAULT_REPS = 10;
 const DEFAULT_WEIGHT_KG = 20;
 
-function formatDateStr(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
-
 function formatDisplayDate(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
   const date = new Date(y, m - 1, d);
-  const todayStr = formatDateStr(new Date());
+  const todayStr = getToday();
   if (dateStr === todayStr) return `今日 (${m}/${d})`;
   return `${m}/${d} (${WEEKDAY_LABELS[date.getDay()]})`;
 }
 
 export default function WorkoutsPage() {
-  const todayStr = formatDateStr(new Date());
+  const todayStr = getToday();
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [showCalendar, setShowCalendar] = useState(false);
   const [workoutDates, setWorkoutDates] = useState<Set<string>>(new Set());
@@ -559,8 +556,7 @@ function CalendarPicker({
   onSelectDate: (date: string) => void;
   markedDates: Set<string>;
 }) {
-  const today = new Date();
-  const todayStr = formatDateStr(today);
+  const todayStr = getToday();
   const [y, m] = selectedDate.split("-").map(Number);
   const [viewYear, setViewYear] = useState(y);
   const [viewMonth, setViewMonth] = useState(m - 1);

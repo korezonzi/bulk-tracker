@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import type { DailySummary, BodyMeasurement, UserProfile, WorkoutLog, MuscleGroup } from "@/lib/types";
 import { MUSCLE_GROUP_LABELS } from "@/lib/types";
 import { calculateWeeklyVolume, detectMuscleGroups } from "@/lib/calc";
+import { daysAgo } from "@/lib/date";
 import {
   ResponsiveContainer,
   LineChart,
@@ -28,12 +29,6 @@ const PERIOD_DAYS: Record<Period, number> = {
   "3m": 90,
 };
 
-function getDateRange(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString().split("T")[0];
-}
-
 export default function ProgressPage() {
   const [period, setPeriod] = useState<Period>("2w");
   const [summaries, setSummaries] = useState<DailySummary[]>([]);
@@ -44,7 +39,7 @@ export default function ProgressPage() {
 
   useEffect(() => {
     async function load() {
-      const startDate = getDateRange(PERIOD_DAYS[period]);
+      const startDate = daysAgo(PERIOD_DAYS[period]);
 
       const [summaryRes, bodyRes, profileRes, workoutRes] = await Promise.all([
         supabase
