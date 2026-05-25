@@ -454,84 +454,106 @@ interface PfcAdviceProps {
 }
 
 function PfcAdvice({ proteinDeficit, fatDeficit, carbsDeficit, calorieDeficit }: PfcAdviceProps) {
-  // Build suggestion lists per nutrient
-  type Suggestion = { text: string; amount: string };
-  const suggestions: { label: string; deficit: number; unit: string; items: Suggestion[] }[] = [];
+  type Item = { text: string; amount: string };
+  type Entry = { label: string; value: number; unit: string; type: "deficit" | "excess"; items: Item[] };
+  const entries: Entry[] = [];
 
+  // Deficits (not enough)
   if (proteinDeficit > 0) {
-    const items: Suggestion[] = [];
-    if (proteinDeficit > 20) {
-      items.push({ text: "プロテイン1杯", amount: "+21g" });
-      items.push({ text: "サラダチキン1個", amount: "+25g" });
-    }
-    if (proteinDeficit <= 20 || items.length < 3) {
-      items.push({ text: "卵1個", amount: "+7g" });
-      items.push({ text: "納豆1パック", amount: "+8g" });
-    }
-    suggestions.push({ label: "タンパク質", deficit: Math.round(proteinDeficit), unit: "g", items });
+    const items: Item[] = [];
+    const scoops = Math.ceil(proteinDeficit / 21);
+    items.push({ text: `プロテイン${scoops}杯`, amount: `+${scoops * 21}g` });
+    if (proteinDeficit > 20) items.push({ text: "サラダチキン1個", amount: "+25g" });
+    if (proteinDeficit <= 14) items.push({ text: "卵1個", amount: "+7g" });
+    entries.push({ label: "タンパク質", value: Math.round(proteinDeficit), unit: "g", type: "deficit", items });
   }
 
   if (fatDeficit > 0) {
-    suggestions.push({
-      label: "脂質",
-      deficit: Math.round(fatDeficit),
-      unit: "g",
-      items: [
-        { text: "ナッツ30g", amount: "+16g" },
-        { text: "アボカド半分", amount: "+10g" },
-      ],
+    entries.push({
+      label: "脂質", value: Math.round(fatDeficit), unit: "g", type: "deficit",
+      items: [{ text: "ナッツ30g", amount: "+16g" }, { text: "アボカド半分", amount: "+10g" }],
     });
   }
 
   if (carbsDeficit > 0) {
-    const items: Suggestion[] = [];
+    const items: Item[] = [];
     if (carbsDeficit > 30) items.push({ text: "おにぎり1個", amount: "+40g" });
-    if (carbsDeficit > 20) items.push({ text: "バナナ1本", amount: "+25g" });
-    items.push({ text: "食パン1枚", amount: "+25g" });
-    suggestions.push({ label: "炭水化物", deficit: Math.round(carbsDeficit), unit: "g", items });
+    items.push({ text: "バナナ1本", amount: "+25g" });
+    entries.push({ label: "炭水化物", value: Math.round(carbsDeficit), unit: "g", type: "deficit", items });
   }
 
-  if (calorieDeficit > 150) {
-    suggestions.push({
-      label: "カロリー",
-      deficit: Math.round(calorieDeficit),
-      unit: "kcal",
-      items: [
-        { text: "おにぎり1個", amount: "+180kcal" },
-        { text: "プロテインバー", amount: "+200kcal" },
-      ],
+  // Excesses (too much) — fat and carbs only
+  if (fatDeficit < -10) {
+    entries.push({
+      label: "脂質", value: Math.round(Math.abs(fatDeficit)), unit: "g", type: "excess",
+      items: [{ text: "脂肪蓄積のリスク", amount: "9kcal/g" }],
     });
   }
 
-  // All targets met
-  if (suggestions.length === 0) {
-    return (
-      <div className="bg-card rounded-xl p-4 text-center">
-        <p className="text-sm font-medium">🎉 今日のPFCは達成済み！</p>
-      </div>
-    );
+  if (carbsDeficit < -30) {
+    entries.push({
+      label: "炭水化物", value: Math.round(Math.abs(carbsDeficit)), unit: "g", type: "excess",
+      items: [{ text: "血糖値スパイク→脂肪合成", amount: "" }],
+    });
   }
+
+  const deficits = entries.filter((e) => e.type === "deficit");
+  const excesses = entries.filter((e) => e.type === "excess");
+  const allGood = deficits.length === 0 && excesses.length === 0;
 
   return (
     <div className="bg-card rounded-xl p-4 space-y-3">
-      <p className="text-sm font-medium">💡 あと少し！</p>
-      {suggestions.map((s) => (
-        <div key={s.label} className="space-y-1">
-          <p className="text-xs text-muted">
-            {s.label}があと<span className="text-foreground font-medium">{s.deficit}{s.unit}</span>足りないよ
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {s.items.map((item) => (
-              <span
-                key={item.text}
-                className="text-[11px] px-2 py-0.5 rounded-lg bg-accent/10 text-accent"
-              >
-                {item.text}({item.amount})
-              </span>
-            ))}
-          </div>
-        </div>
-      ))}
+      {allGood ? (
+        <p className="text-sm font-medium text-center">🎉 今日のPFCは達成済み！</p>
+      ) : (
+        <>
+          {deficits.length > 0 && (
+            <>
+              <p className="text-sm font-medium">💡 あと少し！</p>
+              {deficits.map((s) => (
+                <div key={s.label + s.type} className="space-y-1">
+                  <p className="text-xs text-muted">
+                    {s.label}があと<span className="text-foreground font-medium">{s.value}{s.unit}</span>足りないよ
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {s.items.map((item) => (
+                      <span key={item.text} className="text-[11px] px-2 py-0.5 rounded-lg bg-accent/10 text-accent">
+                        {item.text}{item.amount ? `(${item.amount})` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+          {excesses.length > 0 && (
+            <>
+              <p className="text-sm font-medium">⚠️ 取りすぎ注意</p>
+              {excesses.map((s) => (
+                <div key={s.label + s.type} className="space-y-1">
+                  <p className="text-xs text-muted">
+                    {s.label}が<span className="text-yellow-400 font-medium">{s.value}{s.unit}オーバー</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {s.items.map((item) => (
+                      <span key={item.text} className="text-[11px] px-2 py-0.5 rounded-lg bg-yellow-500/10 text-yellow-400">
+                        {item.text}{item.amount ? ` ${item.amount}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </>
+      )}
+
+      {/* Protein reference */}
+      <div className="border-t border-card-border pt-2 mt-2">
+        <p className="text-[10px] text-muted">
+          🥤 プロテイン1杯 = 113kcal / P21g / F2.2g / C4g
+        </p>
+      </div>
     </div>
   );
 }
