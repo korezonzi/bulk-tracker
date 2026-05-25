@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Meal } from "@/lib/types";
-import { getToday } from "@/lib/date";
+import type { Meal, UserProfile, DailySummary } from "@/lib/types";
+import { getToday, daysAgo } from "@/lib/date";
+import { adjustedDailyTarget } from "@/lib/calc";
 import Link from "next/link";
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
@@ -24,19 +25,27 @@ const MEAL_TYPE_ICONS: Record<string, string> = {
 
 export default function MealsPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [daySummary, setDaySummary] = useState<DailySummary | null>(null);
+  const [recentDays, setRecentDays] = useState<DailySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(getToday());
 
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const { data } = await supabase
-        .from("meals")
-        .select("*")
-        .eq("date", selectedDate)
-        .order("created_at", { ascending: true });
 
-      setMeals(data ?? []);
+      const [mealsRes, profileRes, summaryRes, recentRes] = await Promise.all([
+        supabase.from("meals").select("*").eq("date", selectedDate).order("created_at", { ascending: true }),
+        supabase.from("user_profile").select("*").limit(1).single(),
+        supabase.from("daily_summary").select("*").eq("date", selectedDate).single(),
+        supabase.from("daily_summary").select("*").gte("date", daysAgo(6)).order("date", { ascending: true }),
+      ]);
+
+      setMeals(mealsRes.data ?? []);
+      setProfile(profileRes.data);
+      setDaySummary(summaryRes.data);
+      setRecentDays(recentRes.data ?? []);
       setLoading(false);
     }
     load();
@@ -60,8 +69,14 @@ export default function MealsPage() {
   const totalFat = meals.reduce((sum, m) => sum + m.fat, 0);
   const totalCarbs = meals.reduce((sum, m) => sum + m.carbs, 0);
 
+  const workoutCal = daySummary?.workout_calories ?? 0;
+  const targetCal = profile ? adjustedDailyTarget(profile.target_calories, workoutCal) : 0;
+  const targetP = profile?.target_protein ?? 0;
+  const targetF = profile?.target_fat ?? 0;
+  const targetC = profile?.target_carbs ?? 0;
+
   return (
-    <div className="py-6 md:py-10 space-y-5 md:space-y-8">
+    <div className="py-6 md:py-10 space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
@@ -83,53 +98,43 @@ export default function MealsPage() {
         </Link>
       </div>
 
-      {/* Summary */}
-      <div className="bg-card rounded-xl p-3">
-        <div className="grid grid-cols-4 text-center text-xs">
-          <div>
-            <p className="text-muted">カロリー</p>
-            <p className="font-bold font-num">{Math.round(totalCalories)}</p>
+      {/* PFC Summary with target diff */}
+      {profile && (
+        <div className="bg-card rounded-xl p-4 space-y-3">
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <PfcCell label="カロリー" current={totalCalories} target={targetCal} unit="kcal" color="" />
+            <PfcCell label="P" current={totalProtein} target={targetP} unit="g" color="text-protein" />
+            <PfcCell label="F" current={totalFat} target={targetF} unit="g" color="text-fat" />
+            <PfcCell label="C" current={totalCarbs} target={targetC} unit="g" color="text-carbs" />
           </div>
-          <div>
-            <p className="text-muted">P</p>
-            <p className="font-bold text-protein font-num">{Math.round(totalProtein)}g</p>
-          </div>
-          <div>
-            <p className="text-muted">F</p>
-            <p className="font-bold text-fat font-num">{Math.round(totalFat)}g</p>
-          </div>
-          <div>
-            <p className="text-muted">C</p>
-            <p className="font-bold text-carbs font-num">{Math.round(totalCarbs)}g</p>
+          {/* Progress bar */}
+          <div className="space-y-1.5">
+            <ProgressRow label="Cal" current={totalCalories} target={targetCal} color="bg-accent" />
+            <ProgressRow label="P" current={totalProtein} target={targetP} color="bg-protein" />
+            <ProgressRow label="F" current={totalFat} target={targetF} color="bg-fat" />
+            <ProgressRow label="C" current={totalCarbs} target={targetC} color="bg-carbs" />
           </div>
         </div>
-      </div>
+      )}
 
       {/* Meal list */}
       {meals.length === 0 ? (
         <div className="text-center py-12 text-muted">
           <p className="text-4xl mb-2">📷</p>
           <p>まだ記録がありません 🍳</p>
-          <p className="text-xs mt-1 leading-relaxed">＋ボタンで食事を追加しよう</p>
+          <p className="text-xs mt-1">＋ボタンで食事を追加しよう</p>
         </div>
       ) : (
         <div className="space-y-2">
           {meals.map((meal) => (
-            <div
-              key={meal.id}
-              className="bg-card rounded-xl p-3"
-            >
+            <div key={meal.id} className="bg-card rounded-xl p-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span>{MEAL_TYPE_ICONS[meal.meal_type]}</span>
-                    <span className="text-xs text-muted">
-                      {MEAL_TYPE_LABELS[meal.meal_type]}
-                    </span>
+                    <span className="text-xs text-muted">{MEAL_TYPE_LABELS[meal.meal_type]}</span>
                     {meal.is_ai_estimated && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-accent/20 text-accent rounded">
-                        AI
-                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-accent/20 text-accent rounded">AI</span>
                     )}
                   </div>
                   <p className="text-sm">{meal.description}</p>
@@ -140,10 +145,7 @@ export default function MealsPage() {
                     <span className="text-carbs">C {Math.round(meal.carbs)}g</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDelete(meal.id)}
-                  className="text-muted hover:text-red-400 p-1"
-                >
+                <button onClick={() => handleDelete(meal.id)} className="text-muted hover:text-red-400 p-1">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="3 6 5 6 21 6" />
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -154,6 +156,99 @@ export default function MealsPage() {
           ))}
         </div>
       )}
+
+      {/* Recent 7 days history */}
+      {profile && recentDays.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-sm font-medium">📊 直近7日の振り返り</p>
+          <div className="space-y-1.5">
+            {recentDays.map((day) => {
+              const dayTarget = adjustedDailyTarget(profile.target_calories, day.workout_calories);
+              const calPct = dayTarget > 0 ? Math.round((day.total_calories / dayTarget) * 100) : 0;
+              const pPct = targetP > 0 ? Math.round((day.total_protein / targetP) * 100) : 0;
+              const isToday = day.date === getToday();
+              const dateLabel = day.date.slice(5).replace("-", "/");
+
+              return (
+                <button
+                  key={day.date}
+                  onClick={() => setSelectedDate(day.date)}
+                  className={`w-full bg-card rounded-xl p-3 text-left card-hover ${
+                    day.date === selectedDate ? "ring-1 ring-accent/40" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className={`text-xs font-medium ${isToday ? "text-accent" : ""}`}>
+                      {isToday ? "今日" : dateLabel}
+                    </span>
+                    <div className="flex gap-2 text-[10px] text-muted font-num">
+                      <span>{Math.round(day.total_calories)}kcal</span>
+                      <span className="text-protein">P{Math.round(day.total_protein)}g</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 items-center">
+                    <div className="flex-1 h-1.5 bg-card-border/30 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${calPct >= 90 ? "bg-accent" : calPct >= 70 ? "bg-yellow-500" : "bg-red-500/60"}`}
+                        style={{ width: `${Math.min(calPct, 100)}%` }}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-num w-10 text-right ${
+                      calPct >= 90 ? "text-accent" : calPct >= 70 ? "text-yellow-500" : "text-red-400"
+                    }`}>
+                      {calPct}%
+                    </span>
+                  </div>
+                  <div className="flex gap-1 items-center mt-0.5">
+                    <div className="flex-1 h-1.5 bg-card-border/30 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${pPct >= 90 ? "bg-protein" : "bg-protein/40"}`}
+                        style={{ width: `${Math.min(pPct, 100)}%` }}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-num w-10 text-right ${pPct >= 90 ? "text-protein" : "text-muted"}`}>
+                      P{pPct}%
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// PFC cell with current/target display
+function PfcCell({ label, current, target, unit, color }: {
+  label: string; current: number; target: number; unit: string; color: string;
+}) {
+  const diff = current - target;
+  const pct = target > 0 ? Math.round((current / target) * 100) : 0;
+  return (
+    <div>
+      <p className="text-[10px] text-muted">{label}</p>
+      <p className={`text-base font-bold font-num ${color}`}>{Math.round(current)}</p>
+      <p className="text-[10px] text-muted font-num">/ {Math.round(target)}{unit}</p>
+      <p className={`text-[10px] font-num ${diff > 0 ? "text-yellow-400" : "text-muted"}`}>
+        {pct}%
+      </p>
+    </div>
+  );
+}
+
+// Inline progress bar
+function ProgressRow({ label, current, target, color }: {
+  label: string; current: number; target: number; color: string;
+}) {
+  const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-muted w-6">{label}</span>
+      <div className="flex-1 h-1.5 bg-card-border/30 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }
