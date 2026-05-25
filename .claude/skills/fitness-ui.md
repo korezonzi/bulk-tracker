@@ -27,23 +27,22 @@ Strong/Hevy/MacroFactorなどのプロフェッショナルフィットネスア
 --bg-elevated:    #2D2D44;    /* モーダル、ドロップダウン */
 
 /* Accent */
---accent:         #6366f1;    /* Indigo — プライマリアクション */
---accent-hover:   #5558e6;
+--accent:         #14B8A6;    /* Teal — 成長・健康を表現 */
+--accent-hover:   #0D9488;
 --success:        #10B981;    /* 達成、進捗 */
 --warning:        #F59E0B;    /* 注意 */
 --error:          #EF4444;    /* エラー */
---cta:            #F97316;    /* CTAボタン（オレンジ） */
 
 /* PFC */
---protein:        #F97316;    /* オレンジ */
---fat:            #FACC15;    /* イエロー */
---carbs:          #34D399;    /* エメラルド */
+--protein:        #E8853A;    /* くすんだオレンジ */
+--fat:            #D4A843;    /* くすんだイエロー */
+--carbs:          #3BBF8F;    /* くすんだグリーン */
 
 /* Text */
---text-primary:   #FFFFFF;
---text-secondary: #E5E7EB;
---text-tertiary:  #9CA3AF;
---text-muted:     #6B7280;
+--text-primary:   #F5F5F5;
+--text-secondary: #D4D4D8;
+--text-tertiary:  #8A8A96;
+--text-muted:     #6B6B78;
 ```
 
 ## Tailwind CSSへのマッピング

@@ -115,7 +115,7 @@ export default function ProgressPage() {
   // Weekly muscle volume stacked bar chart data
   const MUSCLE_COLORS: Record<MuscleGroup, string> = {
     chest: "#ef4444",
-    back: "#3b82f6",
+    back: "#3B8FBF",
     legs: "#22c55e",
     shoulders: "#a855f7",
     arms: "#f97316",
@@ -198,9 +198,9 @@ export default function ProgressPage() {
                 {profile && (
                   <ReferenceLine
                     y={profile.target_weight}
-                    stroke="#6366f1"
+                    stroke="#14B8A6"
                     strokeDasharray="5 5"
-                    label={{ value: "目標", fontSize: 10, fill: "#3b82f6" }}
+                    label={{ value: "目標", fontSize: 10, fill: "#3B8FBF" }}
                   />
                 )}
                 <Line
@@ -229,11 +229,11 @@ export default function ProgressPage() {
                 {profile && (
                   <ReferenceLine
                     y={profile.target_calories}
-                    stroke="#6366f1"
+                    stroke="#14B8A6"
                     strokeDasharray="5 5"
                   />
                 )}
-                <Bar dataKey="calories" fill="#6366f1" radius={[6, 6, 0, 0]} name="カロリー (kcal)" />
+                <Bar dataKey="calories" fill="#14B8A6" radius={[6, 6, 0, 0]} name="カロリー (kcal)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -272,17 +272,17 @@ export default function ProgressPage() {
                 {profile && (
                   <ReferenceLine
                     y={profile.target_weight}
-                    stroke="#6366f1"
+                    stroke="#14B8A6"
                     strokeDasharray="5 5"
-                    label={{ value: "目標", fontSize: 10, fill: "#6366f1" }}
+                    label={{ value: "目標", fontSize: 10, fill: "#14B8A6" }}
                   />
                 )}
                 <Line
                   type="monotone"
                   dataKey="leanMass"
-                  stroke="#6366f1"
+                  stroke="#14B8A6"
                   strokeWidth={2}
-                  dot={{ fill: "#6366f1", r: 3 }}
+                  dot={{ fill: "#14B8A6", r: 3 }}
                   name="除脂肪体重 (kg)"
                 />
               </LineChart>
