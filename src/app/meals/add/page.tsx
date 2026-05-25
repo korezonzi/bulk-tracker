@@ -152,6 +152,7 @@ function AddMealContent() {
   const [carbs, setCarbs] = useState(0);
   const [isAiEstimated, setIsAiEstimated] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   // Protein-specific state
   const [proteinOption, setProteinOption] = useState<"plain" | "creatine">("plain");
@@ -212,6 +213,22 @@ function AddMealContent() {
       setFat(data.fat);
       setCarbs(data.carbs);
       setIsAiEstimated(true);
+
+      // Auto-save after analysis
+      const { error } = await supabase.from("meals").insert({
+        date: selectedDate,
+        meal_type: mealType,
+        description: data.description,
+        calories: data.calories,
+        protein: data.protein,
+        fat: data.fat,
+        carbs: data.carbs,
+        is_ai_estimated: true,
+      });
+      if (!error) {
+        setSaved(true);
+        setTimeout(() => router.push("/meals"), 1200);
+      }
     } catch (error) {
       console.error("Analysis error:", error);
     } finally {
@@ -367,23 +384,29 @@ function AddMealContent() {
           <textarea
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
-            placeholder="📝 メニューを入力（例: 牛丼大盛り、味噌汁）"
+            placeholder="📝 メニューを入力して解析ボタンで即記録（例: 牛丼大盛り、味噌汁）"
             rows={2}
             className="w-full px-4 py-3 bg-card rounded-xl text-sm resize-none placeholder:text-muted/50"
           />
 
-          {/* Analyze button */}
+          {/* Analyze + auto-save button */}
           <button
             onClick={handleAnalyze}
-            disabled={!canAnalyze}
-            className="w-full py-3 bg-accent text-white rounded-xl text-sm font-medium disabled:opacity-40 transition-all hover:bg-accent/90 active:scale-[0.98]"
+            disabled={!canAnalyze || saved}
+            className={`w-full py-3 rounded-xl text-sm font-medium transition-all active:scale-[0.98] ${
+              saved
+                ? "bg-green-500/15 text-green-400"
+                : "bg-accent text-white disabled:opacity-40 hover:bg-accent/90"
+            }`}
           >
-            {analyzing ? (
+            {saved ? (
+              "✅ 記録しました！"
+            ) : analyzing ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="inline-block w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                解析中...
+                解析・保存中...
               </span>
-            ) : "🤖 AIで栄養価を推定"}
+            ) : "🤖 AIで解析して記録"}
           </button>
 
           {/* Skeleton loading */}
@@ -409,7 +432,7 @@ function AddMealContent() {
                 }`}>
                   AI信頼度: {result.confidence === "high" ? "高" : result.confidence === "medium" ? "中" : "低"}
                 </span>
-                <span className="text-[10px] text-muted">タップで値を修正</span>
+                <span className="text-[10px] text-muted">{saved ? "✅ 保存済み・タップで修正" : "タップで値を修正"}</span>
               </div>
               <p className="text-sm font-medium">{description}</p>
               <div className="grid grid-cols-4 gap-2">
@@ -425,14 +448,14 @@ function AddMealContent() {
             </div>
           )}
 
-          {/* Save */}
-          {result && !analyzing && (
+          {/* Re-save button (for manual corrections) */}
+          {result && !analyzing && !saved && editingField !== null && (
             <button
               onClick={handleSave}
               disabled={!canSave}
-              className="w-full py-4 bg-accent text-white rounded-xl text-base font-bold disabled:opacity-40 transition-all hover:bg-accent/90 active:scale-[0.98]"
+              className="w-full py-3 bg-card border border-accent/30 text-accent rounded-xl text-sm font-medium disabled:opacity-40 transition-all hover:bg-accent/10 active:scale-[0.98]"
             >
-              {saving ? "保存中..." : "💾 保存する"}
+              {saving ? "保存中..." : "修正を保存"}
             </button>
           )}
         </div>
