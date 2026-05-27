@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { calculatePfcTargets, calculateLeanMass } from "@/lib/calc";
 import { getToday } from "@/lib/date";
+import type { BodyMeasurement } from "@/lib/types";
 
 type InputMode = "screenshot" | "manual";
 type PhotoLabel = "front" | "side";
@@ -21,6 +22,31 @@ interface StoredPhoto {
   date: string;
   label: PhotoLabel;
   url: string;
+}
+
+interface PhysiqueAnalysis {
+  overall_assessment: string;
+  strengths: string[];
+  improvement_areas: string[];
+  muscle_development: {
+    chest: string;
+    back: string;
+    shoulders: string;
+    arms: string;
+    core: string;
+    legs: string;
+  };
+  v_taper_score: number;
+  body_fat_visual: string;
+  priority_training: string[];
+  physique_progress: number;
+}
+
+interface SaveFeedback {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
 }
 
 export default function BodyPage() {
@@ -45,6 +71,16 @@ export default function BodyPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState<PhotoLabel | null>(null);
   const [pastPhotos, setPastPhotos] = useState<StoredPhoto[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
+
+  // Physique analysis state
+  const [physiqueAnalysis, setPhysiqueAnalysis] = useState<PhysiqueAnalysis | null>(null);
+  const [analyzingPhysique, setAnalyzingPhysique] = useState(false);
+
+  // Save feedback state
+  const [saveSuccess, setSaveSuccess] = useState<SaveFeedback | null>(null);
+
+  // Body progress state
+  const [bodyProgress, setBodyProgress] = useState<{ start: BodyMeasurement; latest: BodyMeasurement } | null>(null);
 
   // Load past body photos
   const loadPastPhotos = useCallback(async () => {
@@ -83,6 +119,31 @@ export default function BodyPage() {
     loadPastPhotos();
   }, [loadPastPhotos]);
 
+  // Load first and latest body measurements for progress display
+  useEffect(() => {
+    async function loadBodyProgress() {
+      const [firstRes, latestRes] = await Promise.all([
+        supabase
+          .from("body_measurements")
+          .select("*")
+          .order("date", { ascending: true })
+          .limit(1)
+          .single(),
+        supabase
+          .from("body_measurements")
+          .select("*")
+          .order("date", { ascending: false })
+          .limit(1)
+          .single(),
+      ]);
+
+      if (firstRes.data && latestRes.data && firstRes.data.date !== latestRes.data.date) {
+        setBodyProgress({ start: firstRes.data, latest: latestRes.data });
+      }
+    }
+    loadBodyProgress();
+  }, []);
+
   async function handlePhotoUpload(file: File, label: PhotoLabel) {
     setUploadingPhoto(label);
     try {
@@ -105,21 +166,49 @@ export default function BodyPage() {
         return;
       }
 
-      // Generate preview from compressed file
+      // Generate preview and trigger physique analysis
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataUrl = ev.target?.result as string;
-        if (label === "front") setFrontPreview(dataUrl);
-        else setSidePreview(dataUrl);
-      };
+      const dataUrlPromise = new Promise<string>((resolve) => {
+        reader.onload = (ev) => {
+          const dataUrl = ev.target?.result as string;
+          if (label === "front") setFrontPreview(dataUrl);
+          else setSidePreview(dataUrl);
+          resolve(dataUrl);
+        };
+      });
       reader.readAsDataURL(compressed);
+      const dataUrl = await dataUrlPromise;
 
       // Reload past photos to include the new one
       await loadPastPhotos();
+
+      // Trigger physique analysis with the uploaded photo
+      analyzePhysique(dataUrl, compressed.type || "image/jpeg");
     } catch (error) {
       console.error("Photo compression/upload error:", error);
     } finally {
       setUploadingPhoto(null);
+    }
+  }
+
+  async function analyzePhysique(dataUrl: string, mimeType: string) {
+    setAnalyzingPhysique(true);
+    try {
+      const imageBase64 = dataUrl.split(",")[1];
+      const response = await fetch("/api/analyze-physique", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64, mimeType }),
+      });
+
+      if (!response.ok) throw new Error("Physique analysis failed");
+
+      const data: PhysiqueAnalysis = await response.json();
+      setPhysiqueAnalysis(data);
+    } catch (error) {
+      console.error("Physique analysis error:", error);
+    } finally {
+      setAnalyzingPhysique(false);
     }
   }
 
@@ -228,6 +317,17 @@ export default function BodyPage() {
           updated_at: new Date().toISOString(),
         })
         .not("id", "is", null); // Update the single row
+
+      // Show save feedback before navigating
+      setSaving(false);
+      setSaveSuccess({
+        calories: targets.targetCalories,
+        protein: targets.targetProtein,
+        fat: targets.targetFat,
+        carbs: targets.targetCarbs,
+      });
+      setTimeout(() => router.push("/"), 2000);
+      return;
     }
 
     router.push("/");
@@ -236,6 +336,49 @@ export default function BodyPage() {
   return (
     <div className="py-6 md:py-10 space-y-5 md:space-y-8">
       <h1 className="text-2xl md:text-3xl font-bold tracking-tight">📊 体組成</h1>
+
+      {/* Save success feedback */}
+      {saveSuccess && (
+        <div className="bg-green-900/30 border border-green-700 rounded-xl p-4 space-y-1 animate-in fade-in">
+          <p className="text-sm font-medium text-green-400">✅ 体組成データを保存しました</p>
+          <p className="text-xs text-muted">
+            PFC目標が再計算されました: {saveSuccess.calories}kcal / P {saveSuccess.protein}g / F {saveSuccess.fat}g / C {saveSuccess.carbs}g
+          </p>
+        </div>
+      )}
+
+      {/* Body progress summary */}
+      {bodyProgress && (
+        <div className="bg-card rounded-xl p-4 space-y-2">
+          <p className="text-sm font-medium">📊 体組成の推移</p>
+          <div className="space-y-1 text-xs">
+            <ProgressRow
+              label="体重"
+              start={bodyProgress.start.weight}
+              latest={bodyProgress.latest.weight}
+              unit="kg"
+            />
+            {bodyProgress.start.lean_mass != null && bodyProgress.latest.lean_mass != null && (
+              <ProgressRow
+                label="除脂肪"
+                start={bodyProgress.start.lean_mass}
+                latest={bodyProgress.latest.lean_mass}
+                unit="kg"
+                positive
+              />
+            )}
+            {bodyProgress.start.body_fat_pct != null && bodyProgress.latest.body_fat_pct != null && (
+              <ProgressRow
+                label="体脂肪"
+                start={bodyProgress.start.body_fat_pct}
+                latest={bodyProgress.latest.body_fat_pct}
+                unit="%"
+                lowerIsBetter
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mode toggle */}
       <div className="flex gap-2">
@@ -347,6 +490,8 @@ export default function BodyPage() {
         onPhotoUpload={handlePhotoUpload}
         pastPhotos={pastPhotos}
         loadingPhotos={loadingPhotos}
+        physiqueAnalysis={physiqueAnalysis}
+        analyzingPhysique={analyzingPhysique}
       />
     </div>
   );
@@ -391,6 +536,8 @@ interface BodyPhotoSectionProps {
   onPhotoUpload: (file: File, label: PhotoLabel) => void;
   pastPhotos: StoredPhoto[];
   loadingPhotos: boolean;
+  physiqueAnalysis: PhysiqueAnalysis | null;
+  analyzingPhysique: boolean;
 }
 
 function BodyPhotoSection({
@@ -402,6 +549,8 @@ function BodyPhotoSection({
   onPhotoUpload,
   pastPhotos,
   loadingPhotos,
+  physiqueAnalysis,
+  analyzingPhysique,
 }: BodyPhotoSectionProps) {
   // Group past photos by month
   const photosByMonth = pastPhotos.reduce<Record<string, StoredPhoto[]>>((acc, photo) => {
@@ -525,6 +674,18 @@ function BodyPhotoSection({
         </div>
       </div>
 
+      {/* Physique analysis */}
+      {analyzingPhysique && (
+        <div className="bg-card rounded-xl p-4 flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-muted">体型を分析中...</span>
+        </div>
+      )}
+
+      {physiqueAnalysis && !analyzingPhysique && (
+        <PhysiqueAnalysisCard analysis={physiqueAnalysis} />
+      )}
+
       {/* Before/After comparison */}
       {oldestFront && newestFront && oldestFront.date !== newestFront.date && (
         <div className="bg-card rounded-xl p-4 space-y-3">
@@ -595,6 +756,115 @@ function BodyPhotoSection({
           })}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+// ─── Physique Analysis Card ─────────────────────────────────────
+
+function PhysiqueAnalysisCard({ analysis }: { analysis: PhysiqueAnalysis }) {
+  return (
+    <div className="bg-card rounded-xl p-4 space-y-4">
+      <p className="text-sm font-medium">📋 体型分析</p>
+
+      {/* Overall assessment */}
+      <p className="text-xs text-muted leading-relaxed">{analysis.overall_assessment}</p>
+
+      {/* Strengths */}
+      <div className="space-y-1">
+        <p className="text-xs font-medium">💪 強み</p>
+        <ul className="space-y-0.5">
+          {analysis.strengths.map((s, i) => (
+            <li key={i} className="text-xs text-muted pl-2">• {s}</li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Improvement areas */}
+      <div className="space-y-1">
+        <p className="text-xs font-medium">📈 改善ポイント</p>
+        <ul className="space-y-0.5">
+          {analysis.improvement_areas.map((s, i) => (
+            <li key={i} className="text-xs text-muted pl-2">• {s}</li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Priority training */}
+      <div className="space-y-1">
+        <p className="text-xs font-medium">🎯 優先トレーニング</p>
+        <ol className="space-y-0.5">
+          {analysis.priority_training.map((s, i) => (
+            <li key={i} className="text-xs text-muted pl-2">{i + 1}. {s}</li>
+          ))}
+        </ol>
+      </div>
+
+      {/* Scores */}
+      <div className="flex items-center gap-4 pt-1">
+        <div className="text-xs">
+          <span className="text-muted">V字スコア: </span>
+          <span className="font-medium">{analysis.v_taper_score}/10</span>
+        </div>
+        <div className="text-xs">
+          <span className="text-muted">体脂肪(推定): </span>
+          <span className="font-medium">{analysis.body_fat_visual}</span>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted">フィジーク進捗</span>
+          <span className="font-medium">{analysis.physique_progress}%</span>
+        </div>
+        <div className="w-full h-2 bg-black/20 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-accent rounded-full transition-all"
+            style={{ width: `${Math.min(100, analysis.physique_progress)}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Progress Row ───────────────────────────────────────────────
+
+function ProgressRow({
+  label,
+  start,
+  latest,
+  unit,
+  positive,
+  lowerIsBetter,
+}: {
+  label: string;
+  start: number;
+  latest: number;
+  unit: string;
+  positive?: boolean;
+  lowerIsBetter?: boolean;
+}) {
+  const diff = latest - start;
+  const sign = diff >= 0 ? "+" : "";
+  const isGood = lowerIsBetter ? diff <= 0 : diff >= 0;
+  const statusText = lowerIsBetter
+    ? (Math.abs(diff) < 0.3 ? "維持 ✅" : isGood ? "減少 ✅" : "増加")
+    : positive
+      ? (diff > 0 ? "← 筋肉で増えてる！" : "")
+      : "";
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-muted w-12">{label}:</span>
+      <span>
+        {start.toFixed(1)}{unit} → {latest.toFixed(1)}{unit}
+        <span className={`ml-1 ${isGood ? "text-green-400" : "text-red-400"}`}>
+          ({sign}{diff.toFixed(1)}{unit})
+        </span>
+        {statusText && <span className="ml-1 text-green-400">{statusText}</span>}
+      </span>
     </div>
   );
 }
