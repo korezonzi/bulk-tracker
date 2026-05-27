@@ -225,14 +225,14 @@ export default function Dashboard() {
         <div className="space-y-4 md:space-y-6">
           {/* Today's Stats */}
           <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <div className="bg-card card-hover rounded-xl p-4 md:p-5">
+            <Link href="/meals" className="bg-card card-hover rounded-xl p-4 md:p-5 block">
               <p className="text-xs text-muted mb-1">🍽️ 食事</p>
               <p className="text-2xl md:text-3xl font-bold font-num">{summary.meal_count}</p>
-            </div>
-            <div className="bg-card card-hover rounded-xl p-4 md:p-5">
+            </Link>
+            <Link href="/workouts" className="bg-card card-hover rounded-xl p-4 md:p-5 block">
               <p className="text-xs text-muted mb-1">💪 筋トレ</p>
               <p className="text-2xl md:text-3xl font-bold font-num">{summary.workout_count}</p>
-            </div>
+            </Link>
           </div>
 
           {/* Quick links */}

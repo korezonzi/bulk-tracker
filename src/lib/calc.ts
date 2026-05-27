@@ -147,12 +147,15 @@ export function calculateWeeklyVolume(
     if (!preset) continue;
 
     const muscleGroups = detectMuscleGroups(preset.exercises, preset.name);
-    const setCount = log.sets?.length ?? (preset.exercises?.length ?? 1);
 
-    // Distribute sets across muscle groups
-    const setsPerGroup = Math.ceil(setCount / muscleGroups.length);
+    // YouTube = 1 session counts as 1 set per muscle group
+    // chocoZAP/home = actual sets from log.sets, or 1 if not recorded
+    const setCount = preset.category === "youtube"
+      ? 1
+      : (log.sets?.length ?? 1);
+
     for (const group of muscleGroups) {
-      volumeMap.set(group, (volumeMap.get(group) ?? 0) + setsPerGroup);
+      volumeMap.set(group, (volumeMap.get(group) ?? 0) + setCount);
     }
   }
 

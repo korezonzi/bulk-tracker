@@ -184,6 +184,18 @@ export default function ReviewPage() {
         (workoutRes.data ?? []) as WorkoutLog[]
       );
       setWeekData(data);
+
+      // Load latest saved review if exists
+      const { data: savedReview } = await supabase
+        .from("weekly_reviews")
+        .select("review_text")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (savedReview?.review_text) {
+        setReview(savedReview.review_text);
+      }
+
       setLoading(false);
     }
     load();

@@ -114,13 +114,15 @@ export const MUSCLE_GROUP_EMOJI: Record<MuscleGroup, string> = {
 };
 
 // Weekly volume targets (sets per muscle group per week)
+// YouTube=1セッション1セット換算、chocoZAP/自宅=実セット数
+// 週3-5回トレ + chocoZAP週1-2回（各3セット）を想定
 export const WEEKLY_VOLUME_TARGET: Record<MuscleGroup, { min: number; optimal: number; max: number }> = {
-  chest: { min: 10, optimal: 15, max: 20 },
-  back: { min: 10, optimal: 15, max: 20 },
-  legs: { min: 10, optimal: 15, max: 20 },
-  shoulders: { min: 8, optimal: 12, max: 18 },
-  arms: { min: 6, optimal: 10, max: 16 },
-  core: { min: 6, optimal: 10, max: 16 },
+  chest: { min: 3, optimal: 5, max: 10 },
+  back: { min: 3, optimal: 5, max: 10 },
+  legs: { min: 3, optimal: 5, max: 10 },
+  shoulders: { min: 2, optimal: 4, max: 8 },
+  arms: { min: 2, optimal: 3, max: 6 },
+  core: { min: 3, optimal: 5, max: 10 },
   full_body: { min: 0, optimal: 0, max: 0 },
 };
 
