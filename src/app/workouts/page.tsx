@@ -597,7 +597,6 @@ function ScrollPicker({
       const index = Math.round(scrollTop / ITEM_HEIGHT);
       const clamped = Math.max(0, Math.min(index, options.length - 1));
       onChange(options[clamped]);
-      // Snap to exact position
       containerRef.current.scrollTo({
         top: clamped * ITEM_HEIGHT,
         behavior: "smooth",
@@ -605,10 +604,24 @@ function ScrollPicker({
     }, 80);
   }
 
+  // Normalize mouse wheel to step 1 item at a time
+  function handleWheel(e: React.WheelEvent) {
+    e.preventDefault();
+    if (!containerRef.current) return;
+    const direction = e.deltaY > 0 ? 1 : -1;
+    const currentIndex = Math.round(containerRef.current.scrollTop / ITEM_HEIGHT);
+    const nextIndex = Math.max(0, Math.min(currentIndex + direction, options.length - 1));
+    containerRef.current.scrollTo({
+      top: nextIndex * ITEM_HEIGHT,
+      behavior: "smooth",
+    });
+  }
+
   return (
     <div
       className="relative"
       style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}
+      onWheel={handleWheel}
     >
       {/* Selection highlight bar */}
       <div
