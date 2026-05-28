@@ -57,3 +57,12 @@ body {
   font-family: var(--font-mono), "SF Mono", "Fira Code", monospace;
   font-variant-numeric: tabular-nums;
 }
+
+/* Hide scrollbar for scroll picker */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

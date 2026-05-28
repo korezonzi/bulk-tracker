@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   estimateWorkoutCalories,
@@ -122,12 +122,21 @@ export default function WorkoutsPage() {
       const isHome = preset.category === "home";
 
       if (lastSets.length > 0) {
+        // Priority 1: Use last recorded sets
         const initialized = lastSets.map((s) => ({
           reps: s.reps,
           ...(isHome ? {} : { weight_kg: s.weight_kg ?? DEFAULT_WEIGHT_KG }),
         }));
         setSetInputs((prev) => ({ ...prev, [preset.id]: initialized }));
+      } else if (preset.default_sets && preset.default_sets.length > 0) {
+        // Priority 2: Use preset defaults
+        const initialized = preset.default_sets.map((s) => ({
+          reps: s.reps,
+          ...(isHome ? {} : { weight_kg: s.weight_kg }),
+        }));
+        setSetInputs((prev) => ({ ...prev, [preset.id]: initialized }));
       } else {
+        // Priority 3: Fallback defaults
         const defaultSet: WorkoutSet = isHome
           ? { reps: DEFAULT_REPS }
           : { weight_kg: DEFAULT_WEIGHT_KG, reps: DEFAULT_REPS };
@@ -413,41 +422,43 @@ export default function WorkoutsPage() {
 
                         {/* Set input UI for chocoZAP / home */}
                         {isSetInputOpen && isSetBased && (
-                          <div className="border-t border-card-border px-4 py-3 space-y-2">
+                          <div className="border-t border-card-border px-4 py-3 space-y-3">
                             {(setInputs[preset.id] ?? []).map((set, i) => (
-                              <div key={i} className="flex items-center gap-2">
-                                <span className="text-xs text-muted w-12 shrink-0">セット{i + 1}</span>
-                                {!isHome && (
-                                  <>
-                                    <input
-                                      type="number"
-                                      inputMode="decimal"
-                                      value={set.weight_kg ?? ""}
-                                      onChange={(e) => updateSetField(preset.id, i, "weight_kg", Number(e.target.value))}
-                                      className="w-16 px-2 py-1.5 text-sm bg-card-hover rounded-lg text-center border border-card-border focus:border-accent outline-none"
-                                      placeholder="kg"
+                              <div key={i} className="bg-card-hover/50 rounded-xl p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs text-muted font-medium">セット{i + 1}</span>
+                                  {(setInputs[preset.id] ?? []).length > 1 && (
+                                    <button
+                                      onClick={() => removeSetRow(preset.id, i)}
+                                      className="text-xs text-red-400 hover:text-red-300"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-center gap-3">
+                                  {!isHome && (
+                                    <>
+                                      <div className="w-20">
+                                        <ScrollPicker
+                                          value={set.weight_kg ?? DEFAULT_WEIGHT_KG}
+                                          onChange={(v) => updateSetField(preset.id, i, "weight_kg", v)}
+                                          options={WEIGHT_OPTIONS}
+                                          unit="kg"
+                                        />
+                                      </div>
+                                      <span className="text-sm text-muted self-center">×</span>
+                                    </>
+                                  )}
+                                  <div className="w-20">
+                                    <ScrollPicker
+                                      value={set.reps || DEFAULT_REPS}
+                                      onChange={(v) => updateSetField(preset.id, i, "reps", v)}
+                                      options={REPS_OPTIONS}
+                                      unit="回"
                                     />
-                                    <span className="text-xs text-muted">kg</span>
-                                    <span className="text-xs text-muted">×</span>
-                                  </>
-                                )}
-                                <input
-                                  type="number"
-                                  inputMode="numeric"
-                                  value={set.reps || ""}
-                                  onChange={(e) => updateSetField(preset.id, i, "reps", Number(e.target.value))}
-                                  className="w-16 px-2 py-1.5 text-sm bg-card-hover rounded-lg text-center border border-card-border focus:border-accent outline-none"
-                                  placeholder="回"
-                                />
-                                <span className="text-xs text-muted">回</span>
-                                {(setInputs[preset.id] ?? []).length > 1 && (
-                                  <button
-                                    onClick={() => removeSetRow(preset.id, i)}
-                                    className="text-xs text-red-400 hover:text-red-300 ml-auto"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
+                                  </div>
+                                </div>
                               </div>
                             ))}
                             <div className="flex items-center gap-2 pt-1">
@@ -542,6 +553,104 @@ export default function WorkoutsPage() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Weight/Reps picker options ──────────────────────────────────
+const WEIGHT_OPTIONS = Array.from({ length: 30 }, (_, i) => (i + 1) * 5); // 5–150kg, step 5
+const REPS_OPTIONS = Array.from({ length: 50 }, (_, i) => i + 1); // 1–50
+
+// ─── Scroll Picker Component ─────────────────────────────────────
+function ScrollPicker({
+  value,
+  onChange,
+  options,
+  unit,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  options: number[];
+  unit: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ITEM_HEIGHT = 40;
+  const VISIBLE_ITEMS = 3;
+
+  // Scroll to initial value on mount
+  useEffect(() => {
+    const index = options.indexOf(value);
+    if (index >= 0 && containerRef.current) {
+      containerRef.current.scrollTop = index * ITEM_HEIGHT;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounced scroll handler to detect selected value
+  function handleScroll() {
+    if (scrollTimerRef.current) {
+      clearTimeout(scrollTimerRef.current);
+    }
+    scrollTimerRef.current = setTimeout(() => {
+      if (!containerRef.current) return;
+      const scrollTop = containerRef.current.scrollTop;
+      const index = Math.round(scrollTop / ITEM_HEIGHT);
+      const clamped = Math.max(0, Math.min(index, options.length - 1));
+      onChange(options[clamped]);
+      // Snap to exact position
+      containerRef.current.scrollTo({
+        top: clamped * ITEM_HEIGHT,
+        behavior: "smooth",
+      });
+    }, 80);
+  }
+
+  return (
+    <div
+      className="relative"
+      style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS }}
+    >
+      {/* Selection highlight bar */}
+      <div
+        className="absolute inset-x-0 pointer-events-none z-10"
+        style={{ top: ITEM_HEIGHT, height: ITEM_HEIGHT }}
+      >
+        <div className="h-full border-y border-accent/30 bg-accent/5 rounded" />
+      </div>
+
+      {/* Scrollable area */}
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="h-full overflow-y-auto scrollbar-hide"
+        style={{
+          scrollSnapType: "y mandatory",
+          paddingTop: ITEM_HEIGHT,
+          paddingBottom: ITEM_HEIGHT,
+        }}
+      >
+        {options.map((opt) => (
+          <div
+            key={opt}
+            className={`flex items-center justify-center text-lg font-num ${
+              opt === value
+                ? "text-foreground font-bold"
+                : "text-muted/50"
+            }`}
+            style={{
+              height: ITEM_HEIGHT,
+              scrollSnapAlign: "center",
+            }}
+          >
+            {opt}
+          </div>
+        ))}
+      </div>
+
+      {/* Unit label */}
+      <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-muted">
+        {unit}
+      </span>
     </div>
   );
 }

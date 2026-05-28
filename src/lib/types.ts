@@ -58,6 +58,7 @@ export interface WorkoutPreset {
   thumbnail_url: string | null;
   duration_min: number | null;
   exercises: Exercise[] | null;
+  default_sets: WorkoutSet[] | null;
   sort_order: number;
   created_at: string;
 }
