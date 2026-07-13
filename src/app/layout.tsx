@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { BottomTabBar } from "@/components/bottom-tab-bar";
 import { DesktopSidebar } from "@/components/desktop-sidebar";
+import { ModuleSwitcher } from "@/components/module-switcher";
+import { APP_NAME, APP_DESCRIPTION } from "@/lib/app-config";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,13 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bulk Tracker",
-  description: "Lean bulk management - PFC tracking & workout logging",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Bulk Tracker",
+    title: APP_NAME,
   },
 };
 
@@ -50,6 +52,8 @@ export default function RootLayout({
 
         {/* Main content area */}
         <main className="flex-1 pb-20 md:pb-0 w-full md:ml-56">
+          {/* Mobile module switcher (fitness / skin / consult) */}
+          <ModuleSwitcher />
           <div className="w-full max-w-5xl mx-auto px-4 md:px-8">
             {children}
           </div>

@@ -1,11 +1,11 @@
 {
-  "name": "Bulk Tracker",
-  "short_name": "Bulk",
-  "description": "Lean bulk management - PFC tracking & workout logging",
+  "name": "Body OS",
+  "short_name": "Body",
+  "description": "Personal health OS - PFC tracking, workouts, skincare & health consults",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
-  "theme_color": "#3b82f6",
+  "theme_color": "#141416",
   "orientation": "portrait",
   "icons": [
     {

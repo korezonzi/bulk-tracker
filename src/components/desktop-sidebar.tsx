@@ -2,15 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const navItems = [
-  { href: "/", label: "🏠 ホーム", icon: HomeIcon },
-  { href: "/meals", label: "🍽️ 食事", icon: MealsIcon },
-  { href: "/meals/add", label: "➕ 食事を追加", icon: PlusIcon },
-  { href: "/progress", label: "📈 推移", icon: ChartIcon },
-  { href: "/workouts", label: "💪 筋トレ", icon: DumbbellIcon },
-  { href: "/review", label: "📋 レビュー", icon: ClipboardIcon },
-] as const;
+import { NAV_ICONS } from "@/components/nav-icons";
+import { APP_NAME } from "@/lib/app-config";
+import { MODULES, getActiveModule, isTabActive } from "@/lib/modules";
 
 export function DesktopSidebar() {
   const pathname = usePathname();
@@ -18,22 +12,44 @@ export function DesktopSidebar() {
   // Hide on setup page
   if (pathname === "/setup") return null;
 
+  const activeModule = getActiveModule(pathname);
+
   return (
     <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-56 md:border-r md:border-card-border/50 bg-background z-40">
       {/* Logo */}
       <div className="flex items-center gap-2 px-5 h-16 border-b border-card-border/50">
         <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-          <span className="text-white text-xs font-bold">B</span>
+          <span className="text-white text-xs font-bold">{APP_NAME.charAt(0)}</span>
         </div>
-        <span className="text-sm font-semibold tracking-tight">Bulk Tracker</span>
+        <span className="text-sm font-semibold tracking-tight">{APP_NAME}</span>
+      </div>
+
+      {/* Module switcher */}
+      <div className="px-3 pt-4">
+        <div className="flex gap-1 bg-card rounded-xl p-1">
+          {MODULES.map((mod) => (
+            <Link
+              key={mod.id}
+              href={mod.basePath}
+              className={`flex-1 text-center py-1.5 rounded-lg text-sm transition-colors ${
+                mod.id === activeModule.id
+                  ? "bg-accent/12 text-accent"
+                  : "text-muted hover:text-foreground"
+              }`}
+              title={mod.label}
+            >
+              {mod.emoji}
+            </Link>
+          ))}
+        </div>
+        <p className="px-2 pt-2 text-xs text-muted">{activeModule.label}</p>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive = item.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(item.href);
+      <nav className="flex-1 px-3 py-3 space-y-1">
+        {activeModule.sidebarItems.map((item) => {
+          const Icon = NAV_ICONS[item.icon];
+          const isActive = isTabActive(item, activeModule.basePath, pathname);
 
           return (
             <Link
@@ -45,76 +61,12 @@ export function DesktopSidebar() {
                   : "text-muted hover:text-foreground hover:bg-card-hover"
               }`}
             >
-              <item.icon />
+              <Icon size={20} />
               <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
     </aside>
-  );
-}
-
-function HomeIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-
-function MealsIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-      <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-      <line x1="6" y1="1" x2="6" y2="4" />
-      <line x1="10" y1="1" x2="10" y2="4" />
-      <line x1="14" y1="1" x2="14" y2="4" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
-function ChartIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10" />
-      <line x1="12" y1="20" x2="12" y2="4" />
-      <line x1="6" y1="20" x2="6" y2="14" />
-    </svg>
-  );
-}
-
-function DumbbellIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6.5 6.5h11" />
-      <path d="M6.5 17.5h11" />
-      <path d="M6.5 6.5v11" />
-      <path d="M17.5 6.5v11" />
-      <path d="M4 8v8" />
-      <path d="M20 8v8" />
-      <path d="M2 10v4" />
-      <path d="M22 10v4" />
-    </svg>
-  );
-}
-
-function ClipboardIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-    </svg>
   );
 }
