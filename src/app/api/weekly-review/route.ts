@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { anthropic, AI_MODELS, stripCodeFences, getResponseText } from "@/lib/ai";
 
 const SYSTEM_PROMPT = `あなたはリーンバルク（脂肪を増やさず筋肉を増やす増量）の専門家です。
 スポーツ栄養士とパーソナルトレーナーの知識を持っています。
@@ -18,17 +16,6 @@ const SYSTEM_PROMPT = `あなたはリーンバルク（脂肪を増やさず筋
 曖昧な一般論は避け、データに基づいた具体的なアドバイスを。
 日本語で回答。`;
 
-/**
- * Strip markdown code fences from AI response.
- * e.g. ```markdown\n...\n``` → ...
- */
-function stripCodeFences(text: string): string {
-  return text
-    .replace(/^```(?:markdown|md)?\s*\n?/i, "")
-    .replace(/\n?```\s*$/i, "")
-    .trim();
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { weekData } = await request.json();
@@ -41,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: AI_MODELS.fast,
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [
@@ -52,15 +39,15 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    const textBlock = response.content.find((block) => block.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
+    const responseText = getResponseText(response);
+    if (!responseText) {
       return NextResponse.json(
         { error: "No response from AI" },
         { status: 500 }
       );
     }
 
-    const review = stripCodeFences(textBlock.text);
+    const review = stripCodeFences(responseText);
     return NextResponse.json({ review });
   } catch (error) {
     console.error("Weekly review error:", error);
