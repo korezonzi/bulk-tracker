@@ -3,8 +3,36 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { calculateWeeklyVolume } from "@/lib/calc";
-import type { UserProfile, DailySummary, BodyMeasurement, WorkoutLog } from "@/lib/types";
+import type {
+  UserProfile,
+  DailySummary,
+  BodyMeasurement,
+  WorkoutLog,
+  FitnessDiagnosis,
+  FitnessDiagnosisRecord,
+  IssueSeverity,
+} from "@/lib/types";
 import { daysAgo } from "@/lib/date";
+
+const DIAGNOSIS_PERIODS = [
+  { days: 7, label: "1週間" },
+  { days: 30, label: "1ヶ月" },
+  { days: 90, label: "3ヶ月" },
+  { days: 365, label: "全体" },
+] as const;
+
+const SEVERITY_STYLES: Record<IssueSeverity, { label: string; className: string }> = {
+  high: { label: "重要", className: "bg-error/12 text-error" },
+  medium: { label: "改善余地", className: "bg-warning/12 text-warning" },
+  low: { label: "微調整", className: "bg-card-hover text-muted" },
+};
+
+const GRADE_COLORS: Record<string, string> = {
+  A: "text-accent",
+  B: "text-carbs",
+  C: "text-warning",
+  D: "text-error",
+};
 
 interface WeekData {
   period: string;
@@ -149,6 +177,12 @@ export default function ReviewPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fitness diagnosis (on-demand issue analysis)
+  const [diagPeriod, setDiagPeriod] = useState<number>(7);
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [diagError, setDiagError] = useState<string | null>(null);
+  const [latestDiag, setLatestDiag] = useState<FitnessDiagnosisRecord | null>(null);
+
   useEffect(() => {
     async function load() {
       const startDate = daysAgo(6);
@@ -196,10 +230,61 @@ export default function ReviewPage() {
         setReview(savedReview.review_text);
       }
 
+      // Load latest saved diagnosis if exists
+      const { data: savedDiag } = await supabase
+        .from("fitness_diagnoses")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (savedDiag) {
+        setLatestDiag(savedDiag);
+        setDiagPeriod(savedDiag.period_days);
+      }
+
       setLoading(false);
     }
     load();
   }, []);
+
+  async function runDiagnosis() {
+    setDiagnosing(true);
+    setDiagError(null);
+
+    try {
+      const res = await fetch("/api/fitness-diagnosis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ periodDays: diagPeriod }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "診断に失敗しました");
+      }
+
+      const data = (await res.json()) as {
+        diagnosis: FitnessDiagnosis;
+        dataQuality: { reliableDayCount: number; excludedDayCount: number };
+        period: { start: string; end: string; days: number };
+      };
+      setLatestDiag({
+        id: "latest",
+        period_start: data.period.start,
+        period_end: data.period.end,
+        period_days: data.period.days,
+        reliable_day_count: data.dataQuality.reliableDayCount,
+        excluded_day_count: data.dataQuality.excludedDayCount,
+        threshold_calories: null,
+        ai_diagnosis: data.diagnosis,
+        created_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      setDiagError(err instanceof Error ? err.message : "エラーが発生しました");
+    } finally {
+      setDiagnosing(false);
+    }
+  }
 
   async function generateReview() {
     if (!weekData) return;
@@ -317,6 +402,144 @@ export default function ReviewPage() {
           >
             {review}
           </div>
+        </div>
+      )}
+
+      {/* ═══ Fitness diagnosis ═══ */}
+      <section className="space-y-4 pt-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">🔍 課題診断</h2>
+          <p className="text-xs text-muted mt-1">
+            正しく記録された日だけを使って、期間全体の課題をAIが特定します
+          </p>
+        </div>
+
+        {/* Period selector */}
+        <div className="flex gap-2">
+          {DIAGNOSIS_PERIODS.map((p) => (
+            <button
+              key={p.days}
+              onClick={() => setDiagPeriod(p.days)}
+              className={`flex-1 py-2 rounded-xl text-xs font-medium transition-all ${
+                diagPeriod === p.days ? "bg-accent text-white" : "bg-card text-muted"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <button
+          onClick={runDiagnosis}
+          disabled={diagnosing}
+          className="w-full py-3 rounded-xl font-medium text-sm transition-all bg-accent text-white hover:bg-accent/90 disabled:opacity-50"
+        >
+          {diagnosing ? "診断中...（10秒ほどかかります）" : "🤖 課題を診断する"}
+        </button>
+
+        {diagError && (
+          <div className="bg-card rounded-xl p-4 border border-error/30">
+            <p className="text-sm text-error">{diagError}</p>
+          </div>
+        )}
+
+        {diagnosing && (
+          <div className="bg-card rounded-xl p-5 md:p-6">
+            <SkeletonBlock />
+          </div>
+        )}
+
+        {latestDiag?.ai_diagnosis && !diagnosing && (
+          <DiagnosisResult record={latestDiag} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function DiagnosisResult({ record }: { record: FitnessDiagnosisRecord }) {
+  const diagnosis = record.ai_diagnosis!;
+
+  return (
+    <div className="space-y-3">
+      {/* Data quality */}
+      <div className="bg-card rounded-xl p-4">
+        <div className="flex items-center justify-between flex-wrap gap-1">
+          <span className="text-xs text-muted">
+            {record.period_start} 〜 {record.period_end}（{record.period_days}日間）
+          </span>
+          <span className="text-xs text-muted">
+            採用 <span className="text-foreground font-num">{record.reliable_day_count ?? "-"}</span>日
+            {record.excluded_day_count != null && record.excluded_day_count > 0 && (
+              <> / 除外 <span className="font-num">{record.excluded_day_count}</span>日</>
+            )}
+          </span>
+        </div>
+        <p className="text-xs text-muted mt-2">{diagnosis.data_quality_note}</p>
+      </div>
+
+      {/* Overall grade */}
+      <div className="bg-card rounded-xl p-4 flex items-center gap-4">
+        <span
+          className={`text-4xl font-bold font-num ${GRADE_COLORS[diagnosis.overall.grade] ?? "text-foreground"}`}
+        >
+          {diagnosis.overall.grade}
+        </span>
+        <p className="text-sm text-foreground/90 leading-relaxed">
+          {diagnosis.overall.comment}
+        </p>
+      </div>
+
+      {/* Issues */}
+      {diagnosis.issues.length > 0 && (
+        <div className="bg-card rounded-xl p-4">
+          <h3 className="text-base font-medium mb-3">⚠️ 課題</h3>
+          <div className="space-y-4">
+            {diagnosis.issues.map((issue, i) => (
+              <div key={i}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${SEVERITY_STYLES[issue.severity]?.className ?? SEVERITY_STYLES.low.className}`}
+                  >
+                    {SEVERITY_STYLES[issue.severity]?.label ?? issue.severity}
+                  </span>
+                  <span className="text-sm font-medium">{issue.title}</span>
+                </div>
+                <p className="text-xs text-muted mt-1">根拠: {issue.evidence}</p>
+                <p className="text-xs text-foreground/90 mt-1">→ {issue.recommendation}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Wins */}
+      {diagnosis.wins.length > 0 && (
+        <div className="bg-card rounded-xl p-4">
+          <h3 className="text-base font-medium mb-2">✅ 良かった点</h3>
+          <ul className="space-y-1.5">
+            {diagnosis.wins.map((win, i) => (
+              <li key={i} className="text-sm text-foreground/90 flex gap-2">
+                <span className="text-accent shrink-0">・</span>
+                {win}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Next actions */}
+      {diagnosis.next_actions.length > 0 && (
+        <div className="bg-accent/12 border border-accent/30 rounded-xl p-4">
+          <h3 className="text-base font-medium mb-2 text-accent">🎯 次のアクション</h3>
+          <ol className="space-y-1.5">
+            {diagnosis.next_actions.map((action, i) => (
+              <li key={i} className="text-sm text-foreground/90 flex gap-2">
+                <span className="text-accent font-num shrink-0">{i + 1}.</span>
+                {action}
+              </li>
+            ))}
+          </ol>
         </div>
       )}
     </div>
