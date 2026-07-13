@@ -154,6 +154,137 @@ create policy "Allow all" on workout_presets for all using (true) with check (tr
 create policy "Allow all" on workout_logs for all using (true) with check (true);
 create policy "Allow all" on daily_summary for all using (true) with check (true);
 
+-- ═══════════════════════════════════════════
+-- Fitness diagnosis (on-demand issue analysis)
+-- ═══════════════════════════════════════════
+
+create table if not exists fitness_diagnoses (
+  id uuid primary key default gen_random_uuid(),
+  period_start date not null,
+  period_end date not null,
+  period_days integer not null,
+  reliable_day_count integer,
+  excluded_day_count integer,
+  threshold_calories numeric,     -- reliability threshold used (null = all recorded days)
+  ai_diagnosis jsonb,             -- FitnessDiagnosis JSON
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_fitness_diagnoses_created on fitness_diagnoses(created_at);
+
+alter table fitness_diagnoses enable row level security;
+create policy "Allow all" on fitness_diagnoses for all using (true) with check (true);
+
+-- ═══════════════════════════════════════════
+-- Skincare module
+-- ═══════════════════════════════════════════
+
+-- Skin profile (single row, same pattern as user_profile)
+create table if not exists skin_profile (
+  id uuid primary key default gen_random_uuid(),
+  self_description text,          -- self-reported skin type / concerns (free text)
+  ai_skin_type text,              -- AI-determined skin type (updated per check-in)
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Cosmetics / supplements registry
+create table if not exists skin_products (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  category text not null check (category in
+    ('cleanser','toner','serum','moisturizer','sunscreen','treatment','supplement','other')),
+  brand text,
+  ingredients text,               -- key ingredients (free text)
+  usage_timing text,              -- e.g. 朝 / 夜 / 朝晩
+  started_on date,
+  ended_on date,                  -- null = currently in use
+  notes text,
+  created_at timestamptz default now()
+);
+
+-- Skin check-ins (one per day, same unique-date pattern as body_measurements)
+create table if not exists skin_checkins (
+  id uuid primary key default gen_random_uuid(),
+  date date not null unique,
+  front_photo_path text,          -- path inside private bucket (not a URL)
+  left_photo_path text,
+  right_photo_path text,
+  self_note text,                 -- condition notes (sleep, alcohol, etc.)
+  score_acne numeric,             -- severity 0-10 (higher = worse)
+  score_pores numeric,
+  score_redness numeric,
+  score_oiliness numeric,
+  score_texture numeric,
+  score_overall numeric,          -- overall condition 0-100 (higher = better)
+  ai_analysis jsonb,              -- full SkinAnalysis JSON
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_skin_checkins_date on skin_checkins(date);
+
+-- Spot consults: ad-hoc zoomed photos for immediate care advice.
+-- Separate from skin_checkins so tracking scores stay consistent (fixed 3-angle photos).
+create table if not exists skin_spot_consults (
+  id uuid primary key default gen_random_uuid(),
+  date date not null default current_date,
+  user_note text,
+  photo_paths text[],             -- paths inside private bucket
+  ai_advice jsonb,                -- SkinSpotAdvice JSON
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_skin_spot_date on skin_spot_consults(date);
+
+-- ═══════════════════════════════════════════
+-- Consult module (body concern cases)
+-- ═══════════════════════════════════════════
+
+-- Consult cases (long-running tracking unit per body area)
+create table if not exists consult_cases (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,            -- e.g. 足裏の点状皮むけ
+  body_area text not null,
+  status text not null default 'active' check (status in ('active','monitoring','resolved')),
+  started_on date,                -- symptom onset (can be years ago)
+  summary text,                   -- latest AI case summary
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+-- Case entries (progress notes over time)
+create table if not exists consult_entries (
+  id uuid primary key default gen_random_uuid(),
+  case_id uuid not null references consult_cases(id) on delete cascade,
+  date date not null default current_date,
+  user_note text,
+  photo_paths text[],             -- paths inside private bucket (multiple allowed)
+  ai_response jsonb,              -- ConsultAiResponse JSON
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_consult_entries_case on consult_entries(case_id, date);
+
+-- RLS for new tables (same allow-all single-user pattern)
+alter table skin_profile enable row level security;
+alter table skin_products enable row level security;
+alter table skin_checkins enable row level security;
+alter table skin_spot_consults enable row level security;
+alter table consult_cases enable row level security;
+alter table consult_entries enable row level security;
+
+create policy "Allow all" on skin_profile for all using (true) with check (true);
+create policy "Allow all" on skin_products for all using (true) with check (true);
+create policy "Allow all" on skin_checkins for all using (true) with check (true);
+create policy "Allow all" on skin_spot_consults for all using (true) with check (true);
+create policy "Allow all" on consult_cases for all using (true) with check (true);
+create policy "Allow all" on consult_entries for all using (true) with check (true);
+
 -- Storage buckets (run in Supabase dashboard or via API)
 -- insert into storage.buckets (id, name, public) values ('meal-photos', 'meal-photos', true);
 -- insert into storage.buckets (id, name, public) values ('body-screenshots', 'body-screenshots', true);
+
+-- Private bucket for skin/consult photos (public = false → signed URLs only)
+-- insert into storage.buckets (id, name, public) values ('health-photos', 'health-photos', false);
+-- create policy "Allow all health-photos" on storage.objects
+--   for all using (bucket_id = 'health-photos') with check (bucket_id = 'health-photos');

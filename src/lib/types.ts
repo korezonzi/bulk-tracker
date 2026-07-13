@@ -141,3 +141,229 @@ export interface PfcTargets {
   targetFat: number;
   targetCarbs: number;
 }
+
+// ═══════════════════════════════════════════
+// Fitness diagnosis
+// ═══════════════════════════════════════════
+
+export type IssueSeverity = "high" | "medium" | "low";
+
+export interface FitnessIssue {
+  title: string;
+  severity: IssueSeverity;
+  evidence: string;
+  recommendation: string;
+}
+
+export interface FitnessDiagnosis {
+  data_quality_note: string;
+  overall: { grade: "A" | "B" | "C" | "D"; comment: string };
+  issues: FitnessIssue[];
+  wins: string[];
+  next_actions: string[];
+}
+
+export interface FitnessDiagnosisRecord {
+  id: string;
+  period_start: string;
+  period_end: string;
+  period_days: number;
+  reliable_day_count: number | null;
+  excluded_day_count: number | null;
+  threshold_calories: number | null;
+  ai_diagnosis: FitnessDiagnosis | null;
+  created_at: string;
+}
+
+// ═══════════════════════════════════════════
+// Skincare module
+// ═══════════════════════════════════════════
+
+export type SkinProductCategory =
+  | "cleanser"
+  | "toner"
+  | "serum"
+  | "moisturizer"
+  | "sunscreen"
+  | "treatment"
+  | "supplement"
+  | "other";
+
+export const SKIN_PRODUCT_CATEGORY_LABELS: Record<SkinProductCategory, string> = {
+  cleanser: "洗顔料",
+  toner: "化粧水",
+  serum: "美容液",
+  moisturizer: "乳液・クリーム",
+  sunscreen: "日焼け止め",
+  treatment: "治療薬",
+  supplement: "サプリ",
+  other: "その他",
+};
+
+export interface SkinProfile {
+  id: string;
+  self_description: string | null;
+  ai_skin_type: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SkinProduct {
+  id: string;
+  name: string;
+  category: SkinProductCategory;
+  brand: string | null;
+  ingredients: string | null;
+  usage_timing: string | null;
+  started_on: string | null;
+  ended_on: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+// Individual scores: severity 0-10 (higher = worse). Overall: 0-100 (higher = better).
+export interface SkinScores {
+  acne: number;
+  pores: number;
+  redness: number;
+  oiliness: number;
+  texture: number;
+  overall: number;
+}
+
+export const SKIN_SCORE_LABELS: Record<keyof Omit<SkinScores, "overall">, string> = {
+  acne: "ニキビ",
+  pores: "毛穴",
+  redness: "赤み",
+  oiliness: "皮脂",
+  texture: "キメ",
+};
+
+export type ProductVerdict = "continue" | "reconsider" | "insufficient_data";
+
+export interface SkinProductFeedback {
+  product: string;
+  assessment: string;
+  verdict: ProductVerdict;
+}
+
+export interface SkinSuggestion {
+  type: "ingredient" | "product" | "supplement" | "habit";
+  name: string;
+  reason: string;
+}
+
+export interface SkinAnalysis {
+  skin_type: string;
+  scores: SkinScores;
+  summary: string;
+  observations: string[];
+  product_feedback: SkinProductFeedback[];
+  suggestions: SkinSuggestion[];
+  compared_to_last: string | null;
+}
+
+export interface SkinCheckin {
+  id: string;
+  date: string;
+  front_photo_path: string | null;
+  left_photo_path: string | null;
+  right_photo_path: string | null;
+  self_note: string | null;
+  score_acne: number | null;
+  score_pores: number | null;
+  score_redness: number | null;
+  score_oiliness: number | null;
+  score_texture: number | null;
+  score_overall: number | null;
+  ai_analysis: SkinAnalysis | null;
+  created_at: string;
+}
+
+// Spot consult: ad-hoc zoomed photos → immediate care advice
+// (separate from check-ins so tracking scores stay consistent)
+export interface SkinSpotProductAdvice {
+  product: string;
+  advice: string;
+}
+
+export interface SkinSpotRecommendation {
+  name: string;
+  reason: string;
+}
+
+export interface SkinSpotAdvice {
+  assessment: string;
+  immediate_care: string[];
+  product_advice: SkinSpotProductAdvice[];
+  recommended: SkinSpotRecommendation[];
+  avoid: string[];
+  see_doctor: ConsultSeeDoctor;
+}
+
+export interface SkinSpotConsult {
+  id: string;
+  date: string;
+  user_note: string | null;
+  photo_paths: string[] | null;
+  ai_advice: SkinSpotAdvice | null;
+  created_at: string;
+}
+
+// ═══════════════════════════════════════════
+// Consult module
+// ═══════════════════════════════════════════
+
+export type ConsultCaseStatus = "active" | "monitoring" | "resolved";
+
+export const CONSULT_STATUS_LABELS: Record<ConsultCaseStatus, string> = {
+  active: "相談中",
+  monitoring: "経過観察",
+  resolved: "解決",
+};
+
+export interface ConsultCase {
+  id: string;
+  title: string;
+  body_area: string;
+  status: ConsultCaseStatus;
+  started_on: string | null;
+  summary: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ConsultLikelihood = "高" | "中" | "低";
+export type ConsultUrgency = "routine" | "soon" | "urgent";
+
+export interface ConsultPossibility {
+  name: string;
+  likelihood: ConsultLikelihood;
+  rationale: string;
+}
+
+export interface ConsultSeeDoctor {
+  recommended: boolean;
+  urgency: ConsultUrgency;
+  department: string;
+  reason: string;
+}
+
+export interface ConsultAiResponse {
+  possibilities: ConsultPossibility[];
+  self_care: string[];
+  red_flags: string[];
+  see_doctor: ConsultSeeDoctor;
+  progress_note: string | null;
+  case_summary: string;
+}
+
+export interface ConsultEntry {
+  id: string;
+  case_id: string;
+  date: string;
+  user_note: string | null;
+  photo_paths: string[] | null;
+  ai_response: ConsultAiResponse | null;
+  created_at: string;
+}
