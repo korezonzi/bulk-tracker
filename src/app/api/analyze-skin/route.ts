@@ -46,6 +46,7 @@ const SYSTEM_PROMPT = `あなたは皮膚科学とコスメ成分学に精通し
 
 # 出力
 以下のJSONのみを出力。説明文・マークダウン不要。
+分量の上限（厳守）: assessment は1文（60字以内）。observations は最大4件。suggestions は最大4件で reason は1〜2文。長い説明より簡潔さを優先する。
 {
   "skin_type": "肌タイプの判定（例: 脂性肌（オイリー肌）・ニキビ傾向）",
   "scores": { "acne": 0-10, "pores": 0-10, "redness": 0-10, "oiliness": 0-10, "texture": 0-10, "overall": 0-100 },
@@ -156,7 +157,8 @@ ${selfNote || "（なし）"}
 
     const response = await anthropic.messages.create({
       model: AI_MODELS.quality,
-      max_tokens: 2048,
+      // Output grows with registered product count (per-product feedback) — keep generous
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content }],
     });
@@ -164,6 +166,15 @@ ${selfNote || "（なし）"}
     const responseText = getResponseText(response);
     if (!responseText) {
       return NextResponse.json({ error: "No response from AI" }, { status: 500 });
+    }
+
+    // Truncated output cannot be valid JSON — fail with a clear message instead of a parse error
+    if (response.stop_reason === "max_tokens") {
+      console.error("Skin analysis truncated at max_tokens");
+      return NextResponse.json(
+        { error: "AI response was truncated. Please try again." },
+        { status: 500 }
+      );
     }
 
     const parsed: SkinAnalysis = JSON.parse(stripCodeFences(responseText));

@@ -176,7 +176,8 @@ ${userNote || "（写真のみ）"}
 
     const response = await anthropic.messages.create({
       model: AI_MODELS.quality,
-      max_tokens: 2048,
+      // Japanese JSON output is token-heavy; 2048 risks mid-JSON truncation
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content }],
     });
@@ -184,6 +185,15 @@ ${userNote || "（写真のみ）"}
     const responseText = getResponseText(response);
     if (!responseText) {
       return NextResponse.json({ error: "No response from AI" }, { status: 500 });
+    }
+
+    // Truncated output cannot be valid JSON — fail with a clear message instead of a parse error
+    if (response.stop_reason === "max_tokens") {
+      console.error("Consult truncated at max_tokens");
+      return NextResponse.json(
+        { error: "AI response was truncated. Please try again." },
+        { status: 500 }
+      );
     }
 
     const parsed: ConsultAiResponse = JSON.parse(stripCodeFences(responseText));
