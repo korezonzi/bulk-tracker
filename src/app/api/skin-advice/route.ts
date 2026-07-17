@@ -14,7 +14,8 @@ const supabase = createClient(
 );
 
 const RECENT_CHECKINS_FOR_CONTEXT = 3;
-const MAX_TOKENS = 2500;
+// Japanese JSON output is token-heavy; 2500 caused mid-JSON truncation in production
+const MAX_TOKENS = 4000;
 
 // Text-only context: product registry + profile + recent scores (no photos)
 type ProductContext = Pick<
@@ -51,6 +52,7 @@ const SYSTEM_PROMPT = `あなたは皮膚科学と化粧品成分学に精通し
 
 # 出力
 以下のJSONのみを出力。説明文・マークダウン不要。日本語で書く。
+分量の上限: reason/purpose/how_to_use は各1〜2文、skincare_ingredients は最大4件、supplement_ingredients は最大4件、product_examples は最大3成分、cautions は最大4件。
 {
   "overview": "現在のラインナップ全体の総評（2-3文）",
   "product_reviews": [
@@ -164,6 +166,15 @@ ${formatCheckins(checkins)}
     const responseText = getResponseText(response);
     if (!responseText) {
       return NextResponse.json({ error: "No response from AI" }, { status: 500 });
+    }
+
+    // Truncated output cannot be valid JSON — fail with a clear message instead of a parse error
+    if (response.stop_reason === "max_tokens") {
+      console.error("Skin advice truncated at max_tokens", { maxTokens: MAX_TOKENS });
+      return NextResponse.json(
+        { error: "AI response was truncated. Please try again." },
+        { status: 500 }
+      );
     }
 
     const advice: SkinAdvice = JSON.parse(stripCodeFences(responseText));
