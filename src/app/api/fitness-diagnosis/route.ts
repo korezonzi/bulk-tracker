@@ -35,6 +35,13 @@ const SYSTEM_PROMPT = `あなたはリーンバルク（脂肪を増やさず筋
 - 良い点（wins）も必ず1-2個挙げてモチベーションを保つ
 - next_actions は来週すぐ実行できる行動を2-3個、具体的な数値つきで
 
+# 行動提案のルール
+- diet_plan は target との差分と実データの数値を必ず引用する（例:「タンパク質が目標比 -35g/日」）。「バランスよく食べましょう」のような曖昧な一般論は禁止
+- meal_suggestions は2-4件。timing ごとに、何をどれだけ足す/減らすかを具体的な食材・量で示す
+- habits は1-3件。除外日・未記録日が多い場合は、記録習慣の改善（例: 食後すぐ記録する）も必ず含める
+- training_plan は「記録されているワークアウトログが活動の全て」という前提で作る。推測で未記録のトレーニングを仮定しない
+- muscleVolume の weeklyAvg と weeklyTarget の比較から、部位バランス・頻度・ボリュームの偏りを根拠に recommendations を2-4件導く
+
 # 出力
 以下のJSONのみを出力。説明文・マークダウン不要。日本語で書く。
 {
@@ -44,7 +51,20 @@ const SYSTEM_PROMPT = `あなたはリーンバルク（脂肪を増やさず筋
     { "title": "課題名", "severity": "high" | "medium" | "low", "evidence": "数値による根拠", "recommendation": "具体的な改善アクション" }
   ],
   "wins": ["良かった点", "..."],
-  "next_actions": ["来週の具体的アクション", "..."]
+  "next_actions": ["来週の具体的アクション", "..."],
+  "diet_plan": {
+    "focus": "食事方針を一言で",
+    "meal_suggestions": [
+      { "timing": "朝食" | "昼食" | "夕食" | "間食", "suggestion": "数値つきの具体的な提案", "example_foods": ["食材例", "..."] }
+    ],
+    "habits": ["続けるべき/直すべき食習慣", "..."]
+  },
+  "training_plan": {
+    "focus": "筋トレ方針を一言で",
+    "recommendations": [
+      { "title": "提案名", "detail": "部位・頻度・ボリュームの数値を含む具体的な内容" }
+    ]
+  }
 }`;
 
 export async function POST(request: NextRequest) {
@@ -106,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: AI_MODELS.quality,
-      max_tokens: 2048,
+      max_tokens: 3000,
       system: SYSTEM_PROMPT,
       messages: [
         {

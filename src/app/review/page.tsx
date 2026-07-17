@@ -528,6 +528,61 @@ function DiagnosisResult({ record }: { record: FitnessDiagnosisRecord }) {
         </div>
       )}
 
+      {/* Diet plan (optional: absent on older saved records) */}
+      {diagnosis.diet_plan && (
+        <div className="bg-card rounded-xl p-4">
+          <h3 className="text-base font-medium mb-1">🍽 食事の提案</h3>
+          {diagnosis.diet_plan.focus && (
+            <p className="text-xs text-muted mb-3">{diagnosis.diet_plan.focus}</p>
+          )}
+          <div className="space-y-3">
+            {diagnosis.diet_plan.meal_suggestions?.map((meal, i) => (
+              <div key={i}>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded shrink-0 bg-accent/12 text-accent mt-0.5">
+                    {meal.timing}
+                  </span>
+                  <span className="text-sm text-foreground/90">{meal.suggestion}</span>
+                </div>
+                {(meal.example_foods?.length ?? 0) > 0 && (
+                  <p className="text-xs text-muted mt-1">
+                    例: {meal.example_foods?.join("、")}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+          {(diagnosis.diet_plan.habits?.length ?? 0) > 0 && (
+            <ul className="space-y-1.5 mt-3 pt-3 border-t border-card-hover">
+              {diagnosis.diet_plan.habits?.map((habit, i) => (
+                <li key={i} className="text-xs text-foreground/90 flex gap-2">
+                  <span className="text-accent shrink-0">・</span>
+                  {habit}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Training plan (optional: absent on older saved records) */}
+      {diagnosis.training_plan && (
+        <div className="bg-card rounded-xl p-4">
+          <h3 className="text-base font-medium mb-1">🏋️ 筋トレの提案</h3>
+          {diagnosis.training_plan.focus && (
+            <p className="text-xs text-muted mb-3">{diagnosis.training_plan.focus}</p>
+          )}
+          <div className="space-y-3">
+            {diagnosis.training_plan.recommendations?.map((rec, i) => (
+              <div key={i}>
+                <p className="text-sm font-medium">{rec.title}</p>
+                <p className="text-xs text-foreground/90 mt-1">→ {rec.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Next actions */}
       {diagnosis.next_actions.length > 0 && (
         <div className="bg-accent/12 border border-accent/30 rounded-xl p-4">

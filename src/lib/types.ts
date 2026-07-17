@@ -155,12 +155,39 @@ export interface FitnessIssue {
   recommendation: string;
 }
 
+export type MealTiming = "朝食" | "昼食" | "夕食" | "間食";
+
+export interface MealSuggestion {
+  timing: MealTiming;
+  suggestion: string;
+  example_foods: string[];
+}
+
+export interface DietPlan {
+  focus: string;
+  meal_suggestions: MealSuggestion[];
+  habits: string[];
+}
+
+export interface TrainingRecommendation {
+  title: string;
+  detail: string;
+}
+
+export interface TrainingPlan {
+  focus: string;
+  recommendations: TrainingRecommendation[];
+}
+
 export interface FitnessDiagnosis {
   data_quality_note: string;
   overall: { grade: "A" | "B" | "C" | "D"; comment: string };
   issues: FitnessIssue[];
   wins: string[];
   next_actions: string[];
+  // Optional: absent on records saved before action plans were introduced
+  diet_plan?: DietPlan;
+  training_plan?: TrainingPlan;
 }
 
 export interface FitnessDiagnosisRecord {
