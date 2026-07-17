@@ -23,6 +23,11 @@ import {
   type SkinCheckin,
   type SkinProfile,
 } from "@/lib/types";
+import type {
+  SkinAdvicePriority,
+  SkinAdviceRecord,
+  SkinAdviceVerdict,
+} from "@/lib/skin-advice";
 
 type Period = "1m" | "3m" | "6m";
 
@@ -48,6 +53,26 @@ const SEVERITY_COLORS: Record<keyof typeof SKIN_SCORE_LABELS, string> = {
 };
 
 const HISTORY_LIMIT = 15;
+
+const VERDICT_LABELS: Record<SkinAdviceVerdict, string> = {
+  continue: "継続",
+  reconsider: "見直し",
+  stop: "中止検討",
+  insufficient_data: "判断材料不足",
+};
+
+const VERDICT_STYLES: Record<SkinAdviceVerdict, string> = {
+  continue: "bg-accent/12 text-accent",
+  reconsider: "bg-yellow-500/15 text-yellow-500",
+  stop: "bg-red-500/15 text-red-400",
+  insufficient_data: "bg-card-hover text-muted",
+};
+
+const PRIORITY_STYLES: Record<SkinAdvicePriority, string> = {
+  高: "bg-orange-500/15 text-orange-400",
+  中: "bg-yellow-500/15 text-yellow-500",
+  低: "bg-card-hover text-muted",
+};
 
 export default function SkinDashboardPage() {
   const [profile, setProfile] = useState<SkinProfile | null>(null);
@@ -314,6 +339,9 @@ export default function SkinDashboardPage() {
         </section>
       )}
 
+      {/* AI cosmetics/supplement advice */}
+      <SkinAdviceSection />
+
       {/* History */}
       {checkins.length > 0 && (
         <section className="space-y-2">
@@ -326,6 +354,241 @@ export default function SkinDashboardPage() {
 
       <MedicalDisclaimer />
     </div>
+  );
+}
+
+function SkinAdviceSection() {
+  const [record, setRecord] = useState<SkinAdviceRecord | null>(null);
+  const [productCount, setProductCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const [adviceRes, countRes] = await Promise.all([
+        fetch("/api/skin-advice")
+          .then((res) => (res.ok ? res.json() : { advice: null }))
+          .catch(() => ({ advice: null })),
+        supabase
+          .from("skin_products")
+          .select("id", { count: "exact", head: true })
+          .is("ended_on", null),
+      ]);
+      if (!active) return;
+      setRecord(
+        (adviceRes as { advice: SkinAdviceRecord | null }).advice ?? null
+      );
+      setProductCount(countRes.count ?? 0);
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleGenerate() {
+    if (generating) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/skin-advice", { method: "POST" });
+      const json = (await res.json()) as {
+        advice?: SkinAdviceRecord;
+        error?: string;
+      };
+      if (!res.ok || !json.advice) {
+        throw new Error(json.error ?? "generation failed");
+      }
+      setRecord(json.advice);
+    } catch (err) {
+      console.error("Skin advice generation error:", err);
+      setError("提案の生成に失敗しました。時間をおいて再度お試しください");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  const advice = record?.ai_advice ?? null;
+
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">💊 コスメ・サプリ提案</h2>
+        <button
+          onClick={handleGenerate}
+          disabled={generating || loading}
+          className="bg-accent text-white px-4 py-2 rounded-lg text-sm font-semibold active:scale-[0.97] disabled:opacity-50"
+        >
+          {generating ? "生成中..." : advice ? "提案を更新" : "提案を生成"}
+        </button>
+      </div>
+
+      {!loading && productCount === 0 && (
+        <p className="text-xs text-muted">
+          <Link href="/skin/products" className="text-accent underline">
+            コスメ・サプリを登録
+          </Link>
+          すると提案の精度が上がります
+        </p>
+      )}
+
+      {error && <p className="text-xs text-red-400">{error}</p>}
+
+      {loading || generating ? (
+        <div className="bg-card rounded-xl p-8 flex flex-col items-center justify-center gap-2">
+          <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          {generating && (
+            <p className="text-xs text-muted">AIが提案を生成しています...</p>
+          )}
+        </div>
+      ) : record && advice ? (
+        <div className="bg-card rounded-xl p-4 space-y-4">
+          <p className="text-sm leading-relaxed text-foreground/90">
+            {advice.overview}
+          </p>
+
+          {advice.product_reviews.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs text-muted">使用中製品の評価</h3>
+              {advice.product_reviews.map((review) => (
+                <div key={review.name} className="bg-background rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium flex-1">
+                      {review.name}
+                    </span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${VERDICT_STYLES[review.verdict]}`}
+                    >
+                      {VERDICT_LABELS[review.verdict]}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">
+                    {review.reason}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {advice.skincare_ingredients.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs text-muted">追加におすすめのスキンケア成分</h3>
+              {advice.skincare_ingredients.map((item) => (
+                <div
+                  key={item.ingredient}
+                  className="bg-background rounded-lg p-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${PRIORITY_STYLES[item.priority]}`}
+                    >
+                      優先度{item.priority}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {item.ingredient}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">
+                    {item.purpose}
+                  </p>
+                  <p className="text-xs text-foreground/80 mt-1 leading-relaxed">
+                    使い方: {item.how_to_use}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {advice.supplement_ingredients.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs text-muted">追加におすすめのサプリ成分</h3>
+              {advice.supplement_ingredients.map((item) => (
+                <div
+                  key={item.ingredient}
+                  className="bg-background rounded-lg p-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${PRIORITY_STYLES[item.priority]}`}
+                    >
+                      優先度{item.priority}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {item.ingredient}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted mt-1 leading-relaxed">
+                    {item.purpose}
+                  </p>
+                  <p className="text-xs text-foreground/80 mt-1 leading-relaxed">
+                    目安: {item.dosage_hint}
+                  </p>
+                  {item.caution && (
+                    <p className="text-xs text-yellow-500/90 mt-1 leading-relaxed">
+                      注意: {item.caution}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {advice.product_examples.length > 0 && (
+            <div className="space-y-1">
+              <h3 className="text-xs text-muted">製品例</h3>
+              {advice.product_examples.map((example) => (
+                <p
+                  key={example.for_ingredient}
+                  className="text-xs text-foreground/80 leading-relaxed"
+                >
+                  <span className="text-muted">{example.for_ingredient}: </span>
+                  {example.examples.join("、")}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {advice.cautions.length > 0 && (
+            <div className="space-y-1">
+              <h3 className="text-xs text-muted">注意点</h3>
+              <ul className="space-y-1">
+                {advice.cautions.map((caution) => (
+                  <li
+                    key={caution}
+                    className="text-xs text-yellow-500/90 leading-relaxed"
+                  >
+                    ・{caution}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <p className="text-[10px] text-muted text-right">
+            生成日時:{" "}
+            {new Date(record.created_at).toLocaleString("ja-JP", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-card rounded-xl p-8 text-center">
+          <p className="text-4xl mb-3">💊</p>
+          <p className="font-medium">まだ提案がありません</p>
+          <p className="text-xs text-muted mt-1">
+            使用中のコスメ・サプリと肌スコアをもとに、AIが継続判断と追加すべき成分を提案します
+          </p>
+        </div>
+      )}
+
+      <MedicalDisclaimer />
+    </section>
   );
 }
 

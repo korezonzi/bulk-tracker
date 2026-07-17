@@ -236,6 +236,16 @@ create table if not exists skin_spot_consults (
 
 create index if not exists idx_skin_spot_date on skin_spot_consults(date);
 
+-- AI cosmetics/supplement advice (on-demand, latest shown on /skin dashboard)
+create table if not exists skin_advice (
+  id uuid primary key default gen_random_uuid(),
+  ai_advice jsonb,                -- SkinAdvice JSON
+  product_count integer,          -- number of active products at generation time
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_skin_advice_created on skin_advice(created_at);
+
 -- ═══════════════════════════════════════════
 -- Consult module (body concern cases)
 -- ═══════════════════════════════════════════
@@ -270,6 +280,7 @@ alter table skin_profile enable row level security;
 alter table skin_products enable row level security;
 alter table skin_checkins enable row level security;
 alter table skin_spot_consults enable row level security;
+alter table skin_advice enable row level security;
 alter table consult_cases enable row level security;
 alter table consult_entries enable row level security;
 
@@ -277,6 +288,7 @@ create policy "Allow all" on skin_profile for all using (true) with check (true)
 create policy "Allow all" on skin_products for all using (true) with check (true);
 create policy "Allow all" on skin_checkins for all using (true) with check (true);
 create policy "Allow all" on skin_spot_consults for all using (true) with check (true);
+create policy "Allow all" on skin_advice for all using (true) with check (true);
 create policy "Allow all" on consult_cases for all using (true) with check (true);
 create policy "Allow all" on consult_entries for all using (true) with check (true);
 
