@@ -15,13 +15,15 @@ export function ModuleSwitcher() {
   const activeModule = getActiveModule(pathname);
 
   return (
-    <div className="md:hidden px-4 pt-3">
+    // safe-area-inset-top + extra clearance keeps the pills out of the iOS
+    // status-bar / browser-chrome dead zone where taps are swallowed
+    <div className="md:hidden px-4 pt-[calc(env(safe-area-inset-top)+16px)]">
       <div className="flex gap-1 bg-card rounded-xl p-1">
         {MODULES.map((mod) => (
           <Link
             key={mod.id}
             href={mod.basePath}
-            className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1 py-2.5 rounded-lg text-xs transition-colors ${
               mod.id === activeModule.id
                 ? "bg-accent/12 text-accent font-medium"
                 : "text-muted"
