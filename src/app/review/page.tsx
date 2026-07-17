@@ -13,6 +13,7 @@ import type {
   IssueSeverity,
 } from "@/lib/types";
 import { daysAgo } from "@/lib/date";
+import { MarkdownView } from "@/components/markdown-view";
 
 const DIAGNOSIS_PERIODS = [
   { days: 7, label: "1週間" },
@@ -396,12 +397,7 @@ export default function ReviewPage() {
       {/* Review result */}
       {review && !generating && (
         <div className="bg-card rounded-xl p-5 md:p-6">
-          <div
-            className="text-base md:text-lg leading-relaxed"
-            style={{ whiteSpace: "pre-wrap" }}
-          >
-            {review}
-          </div>
+          <MarkdownView text={review} />
         </div>
       )}
 
