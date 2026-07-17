@@ -14,8 +14,10 @@ const supabase = createClient(
 );
 
 const RECENT_CHECKINS_FOR_CONTEXT = 3;
-// Japanese JSON output is token-heavy; 2500 caused mid-JSON truncation in production
-const MAX_TOKENS = 4000;
+// Japanese JSON output is token-heavy; 2500/4000 both caused mid-JSON truncation
+// in production with 8 registered products. Generous cap + brevity rules in the
+// prompt keep generation under the mobile Safari fetch timeout (~60s).
+const MAX_TOKENS = 8192;
 
 // Text-only context: product registry + profile + recent scores (no photos)
 type ProductContext = Pick<
@@ -52,7 +54,7 @@ const SYSTEM_PROMPT = `あなたは皮膚科学と化粧品成分学に精通し
 
 # 出力
 以下のJSONのみを出力。説明文・マークダウン不要。日本語で書く。
-分量の上限: reason/purpose/how_to_use は各1〜2文、skincare_ingredients は最大4件、supplement_ingredients は最大4件、product_examples は最大3成分、cautions は最大4件。
+分量の上限（厳守）: overview は2文以内。reason は1文（60字以内）。purpose / how_to_use / dosage_hint / caution は各1文。skincare_ingredients は最大3件、supplement_ingredients は最大3件、product_examples は最大2成分、cautions は最大3件。長い説明より簡潔さを優先する。
 {
   "overview": "現在のラインナップ全体の総評（2-3文）",
   "product_reviews": [
